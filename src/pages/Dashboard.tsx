@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { format, isToday, isTomorrow, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { 
@@ -6,7 +6,6 @@ import {
   Users, 
   Clock, 
   Search, 
-  Filter, 
   Link as LinkIcon, 
   Copy, 
   Check,
@@ -16,36 +15,96 @@ import {
   Phone,
   Mail,
   CalendarDays,
-  ChevronRight,
   Menu,
   X,
-  Home
+  Home,
+  LogOut,
+  Loader2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Link } from 'react-router-dom';
-import { mockAppointments, professionals } from '@/data/mockData';
-import { Appointment } from '@/types/scheduling';
+import { Link, useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/contexts/AuthContext';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  fetchAppointmentsByClinic,
+  fetchProfessionalsByClinic,
+  getUserProfile,
+  updateAppointmentStatus,
+  linkProfileToClinic,
+  Appointment,
+  Professional,
+  Clinic
+} from '@/services/schedulingService';
+
+const DEMO_CLINIC_ID = '550e8400-e29b-41d4-a716-446655440000';
 
 const Dashboard = () => {
   const { toast } = useToast();
-  const [appointments, setAppointments] = useState<Appointment[]>(mockAppointments);
+  const { user, loading: authLoading, signOut } = useAuth();
+  const navigate = useNavigate();
+  
+  const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const [professionals, setProfessionals] = useState<Professional[]>([]);
+  const [clinic, setClinic] = useState<Clinic | null>(null);
+  const [loading, setLoading] = useState(true);
+  
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedProfessional, setSelectedProfessional] = useState<string>('all');
   const [linkCopied, setLinkCopied] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
+  // Redirect to auth if not logged in
+  useEffect(() => {
+    if (!authLoading && !user) {
+      navigate('/auth');
+    }
+  }, [user, authLoading, navigate]);
+
+  // Load data
+  useEffect(() => {
+    const loadData = async () => {
+      if (!user) return;
+      
+      setLoading(true);
+      
+      // Get user profile
+      const profile = await getUserProfile(user.id);
+      
+      let clinicId = profile?.clinic_id;
+      
+      // If no clinic linked, link to demo clinic
+      if (!clinicId) {
+        await linkProfileToClinic(user.id, DEMO_CLINIC_ID);
+        clinicId = DEMO_CLINIC_ID;
+      }
+      
+      // Fetch clinic data
+      const [appointmentsData, professionalsData] = await Promise.all([
+        fetchAppointmentsByClinic(clinicId),
+        fetchProfessionalsByClinic(clinicId),
+      ]);
+      
+      setAppointments(appointmentsData);
+      setProfessionals(professionalsData);
+      setLoading(false);
+    };
+
+    if (user) {
+      loadData();
+    }
+  }, [user]);
+
   const filteredAppointments = appointments.filter(apt => {
-    const matchesSearch = apt.patientName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          apt.patientEmail.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesProfessional = selectedProfessional === 'all' || apt.professionalId === selectedProfessional;
+    const matchesSearch = apt.patient_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                          apt.patient_email.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesProfessional = selectedProfessional === 'all' || apt.professional_id === selectedProfessional;
     return matchesSearch && matchesProfessional && apt.status !== 'cancelled';
   });
 
@@ -69,9 +128,20 @@ const Dashboard = () => {
     setTimeout(() => setLinkCopied(false), 2000);
   };
 
-  const handleCancelAppointment = (id: string) => {
+  const handleCancelAppointment = async (id: string) => {
+    const { error } = await updateAppointmentStatus(id, 'cancelled');
+    
+    if (error) {
+      toast({
+        title: 'Erro ao cancelar',
+        description: 'Não foi possível cancelar a consulta',
+        variant: 'destructive',
+      });
+      return;
+    }
+    
     setAppointments(prev => 
-      prev.map(apt => apt.id === id ? { ...apt, status: 'cancelled' as const } : apt)
+      prev.map(apt => apt.id === id ? { ...apt, status: 'cancelled' } : apt)
     );
     toast({
       title: 'Consulta cancelada',
@@ -79,12 +149,22 @@ const Dashboard = () => {
     });
   };
 
-  const formatDateLabel = (dateStr: string) => {
-    const date = parseISO(dateStr);
-    if (isToday(date)) return 'Hoje';
-    if (isTomorrow(date)) return 'Amanhã';
-    return format(date, "EEEE, d 'de' MMMM", { locale: ptBR });
+  const handleSignOut = async () => {
+    await signOut();
+    navigate('/');
   };
+
+  if (authLoading || loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Loader2 className="w-8 h-8 text-primary animate-spin" />
+      </div>
+    );
+  }
+
+  if (!user) {
+    return null;
+  }
 
   return (
     <div className="min-h-screen bg-background flex">
@@ -157,14 +237,23 @@ const Dashboard = () => {
             </div>
           </div>
 
-          {/* Footer */}
-          <div className="p-4 border-t border-border">
-            <Link to="/">
-              <Button variant="ghost" size="sm" className="w-full justify-start">
-                <Home className="w-4 h-4 mr-2" />
-                Voltar ao Início
+          {/* User & Footer */}
+          <div className="p-4 border-t border-border space-y-2">
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <User className="w-4 h-4" />
+              <span className="truncate">{user.email}</span>
+            </div>
+            <div className="flex gap-2">
+              <Link to="/" className="flex-1">
+                <Button variant="ghost" size="sm" className="w-full justify-start">
+                  <Home className="w-4 h-4 mr-2" />
+                  Início
+                </Button>
+              </Link>
+              <Button variant="ghost" size="sm" onClick={handleSignOut}>
+                <LogOut className="w-4 h-4" />
               </Button>
-            </Link>
+            </div>
           </div>
         </div>
       </aside>
@@ -353,6 +442,8 @@ const AppointmentCard = ({ appointment, onCancel, showDate }: AppointmentCardPro
     return format(date, "d 'de' MMMM", { locale: ptBR });
   };
 
+  const professionalName = appointment.professional?.name || 'Profissional';
+
   return (
     <div className="bg-card rounded-xl border border-border p-4 hover:shadow-md transition-all">
       <div className="flex items-start justify-between">
@@ -361,8 +452,8 @@ const AppointmentCard = ({ appointment, onCancel, showDate }: AppointmentCardPro
             <User className="w-5 h-5 text-primary" />
           </div>
           <div>
-            <h3 className="font-semibold text-foreground">{appointment.patientName}</h3>
-            <p className="text-sm text-muted-foreground">{appointment.professionalName}</p>
+            <h3 className="font-semibold text-foreground">{appointment.patient_name}</h3>
+            <p className="text-sm text-muted-foreground">{professionalName}</p>
             <div className="flex flex-wrap items-center gap-3 mt-2 text-sm text-muted-foreground">
               {showDate && (
                 <span className="flex items-center gap-1">
@@ -372,7 +463,7 @@ const AppointmentCard = ({ appointment, onCancel, showDate }: AppointmentCardPro
               )}
               <span className="flex items-center gap-1">
                 <Clock className="w-4 h-4" />
-                {appointment.time}
+                {appointment.time.substring(0, 5)}
               </span>
             </div>
           </div>
@@ -387,11 +478,11 @@ const AppointmentCard = ({ appointment, onCancel, showDate }: AppointmentCardPro
           <DropdownMenuContent align="end">
             <DropdownMenuItem className="flex items-center gap-2">
               <Phone className="w-4 h-4" />
-              {appointment.patientPhone}
+              {appointment.patient_phone}
             </DropdownMenuItem>
             <DropdownMenuItem className="flex items-center gap-2">
               <Mail className="w-4 h-4" />
-              {appointment.patientEmail}
+              {appointment.patient_email}
             </DropdownMenuItem>
             <DropdownMenuItem 
               className="flex items-center gap-2 text-destructive"
