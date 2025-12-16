@@ -1,14 +1,27 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { format, addDays, isSameDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Calendar, ChevronLeft, ChevronRight, Clock, User, Mail, Phone, CheckCircle, ArrowLeft, Building2 } from 'lucide-react';
+import { Calendar, ChevronLeft, ChevronRight, Clock, User, Mail, Phone, CheckCircle, ArrowLeft, Building2, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Link, useParams } from 'react-router-dom';
-import { professionals, generateTimeSlots } from '@/data/mockData';
-import { Professional, TimeSlot, BookingFormData } from '@/types/scheduling';
 import { useToast } from '@/hooks/use-toast';
+import { 
+  fetchClinicBySlug, 
+  fetchProfessionalsByClinic, 
+  generateTimeSlots,
+  createAppointment,
+  Professional,
+  TimeSlot,
+  Clinic
+} from '@/services/schedulingService';
+
+interface BookingFormData {
+  name: string;
+  email: string;
+  phone: string;
+}
 
 type BookingStep = 'professional' | 'datetime' | 'form' | 'confirmation';
 
@@ -16,19 +29,55 @@ const PublicBooking = () => {
   const { clinicSlug } = useParams();
   const { toast } = useToast();
   
+  const [loading, setLoading] = useState(true);
+  const [clinic, setClinic] = useState<Clinic | null>(null);
+  const [professionals, setProfessionals] = useState<Professional[]>([]);
+  
   const [step, setStep] = useState<BookingStep>('professional');
   const [selectedProfessional, setSelectedProfessional] = useState<Professional | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [selectedSlot, setSelectedSlot] = useState<TimeSlot | null>(null);
+  const [timeSlots, setTimeSlots] = useState<TimeSlot[]>([]);
+  const [loadingSlots, setLoadingSlots] = useState(false);
   const [formData, setFormData] = useState<BookingFormData>({ name: '', email: '', phone: '' });
   const [isSubmitting, setIsSubmitting] = useState(false);
   
   const [dateOffset, setDateOffset] = useState(0);
   const visibleDates = Array.from({ length: 7 }, (_, i) => addDays(new Date(), dateOffset + i));
-  
-  const timeSlots = selectedProfessional 
-    ? generateTimeSlots(selectedDate, selectedProfessional.id)
-    : [];
+
+  // Fetch clinic and professionals on mount
+  useEffect(() => {
+    const loadClinicData = async () => {
+      if (!clinicSlug) return;
+      
+      setLoading(true);
+      const clinicData = await fetchClinicBySlug(clinicSlug);
+      
+      if (clinicData) {
+        setClinic(clinicData);
+        const professionalsData = await fetchProfessionalsByClinic(clinicData.id);
+        setProfessionals(professionalsData);
+      }
+      
+      setLoading(false);
+    };
+
+    loadClinicData();
+  }, [clinicSlug]);
+
+  // Fetch time slots when professional or date changes
+  useEffect(() => {
+    const loadTimeSlots = async () => {
+      if (!selectedProfessional) return;
+      
+      setLoadingSlots(true);
+      const slots = await generateTimeSlots(selectedDate, selectedProfessional.id);
+      setTimeSlots(slots);
+      setLoadingSlots(false);
+    };
+
+    loadTimeSlots();
+  }, [selectedProfessional, selectedDate]);
 
   const handleSelectProfessional = (professional: Professional) => {
     setSelectedProfessional(professional);
@@ -53,14 +102,32 @@ const PublicBooking = () => {
       return;
     }
 
+    if (!clinic || !selectedProfessional || !selectedSlot) return;
+
     setIsSubmitting(true);
     
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1500));
+    const { error } = await createAppointment({
+      clinic_id: clinic.id,
+      professional_id: selectedProfessional.id,
+      date: selectedDate.toISOString().split('T')[0],
+      time: selectedSlot.time,
+      patient_name: formData.name.trim(),
+      patient_email: formData.email.trim(),
+      patient_phone: formData.phone.trim(),
+    });
     
     setIsSubmitting(false);
-    setStep('confirmation');
+
+    if (error) {
+      toast({
+        title: 'Erro ao agendar',
+        description: 'Não foi possível confirmar o agendamento. Tente novamente.',
+        variant: 'destructive',
+      });
+      return;
+    }
     
+    setStep('confirmation');
     toast({
       title: 'Agendamento confirmado!',
       description: 'Você receberá um email com os detalhes.',
@@ -81,6 +148,29 @@ const PublicBooking = () => {
     setSelectedDate(new Date());
   };
 
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Loader2 className="w-8 h-8 text-primary animate-spin" />
+      </div>
+    );
+  }
+
+  if (!clinic) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <Building2 className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+          <h2 className="text-xl font-semibold text-foreground mb-2">Clínica não encontrada</h2>
+          <p className="text-muted-foreground mb-4">Verifique o link e tente novamente</p>
+          <Link to="/">
+            <Button variant="outline">Voltar ao início</Button>
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
@@ -92,7 +182,7 @@ const PublicBooking = () => {
                 <Building2 className="w-5 h-5 text-primary-foreground" />
               </div>
               <div>
-                <h1 className="font-semibold text-foreground">Clínica Saúde Total</h1>
+                <h1 className="font-semibold text-foreground">{clinic.name}</h1>
                 <p className="text-xs text-muted-foreground">Agendamento Online</p>
               </div>
             </div>
@@ -151,30 +241,37 @@ const PublicBooking = () => {
               <h2 className="text-2xl font-bold text-foreground mb-2">Escolha o Profissional</h2>
               <p className="text-muted-foreground mb-6">Selecione o profissional para sua consulta</p>
               
-              <div className="space-y-3">
-                {professionals.map((professional) => (
-                  <button
-                    key={professional.id}
-                    onClick={() => handleSelectProfessional(professional)}
-                    className="w-full p-4 rounded-xl border border-border bg-card hover:border-primary hover:shadow-md transition-all text-left group"
-                  >
-                    <div className="flex items-center gap-4">
-                      <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
-                        <User className="w-6 h-6 text-primary" />
+              {professionals.length === 0 ? (
+                <div className="text-center py-8">
+                  <User className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                  <p className="text-muted-foreground">Nenhum profissional disponível</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {professionals.map((professional) => (
+                    <button
+                      key={professional.id}
+                      onClick={() => handleSelectProfessional(professional)}
+                      className="w-full p-4 rounded-xl border border-border bg-card hover:border-primary hover:shadow-md transition-all text-left group"
+                    >
+                      <div className="flex items-center gap-4">
+                        <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
+                          <User className="w-6 h-6 text-primary" />
+                        </div>
+                        <div className="flex-1">
+                          <h3 className="font-semibold text-foreground">{professional.name}</h3>
+                          <p className="text-sm text-muted-foreground">{professional.specialty}</p>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            <Clock className="w-3 h-3 inline mr-1" />
+                            Consulta de {professional.duration} min
+                          </p>
+                        </div>
+                        <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:text-primary transition-colors" />
                       </div>
-                      <div className="flex-1">
-                        <h3 className="font-semibold text-foreground">{professional.name}</h3>
-                        <p className="text-sm text-muted-foreground">{professional.specialty}</p>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          <Clock className="w-3 h-3 inline mr-1" />
-                          Consulta de {professional.duration} min
-                        </p>
-                      </div>
-                      <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:text-primary transition-colors" />
-                    </div>
-                  </button>
-                ))}
-              </div>
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           )}
 
@@ -248,24 +345,30 @@ const PublicBooking = () => {
               {/* Time Slots */}
               <div>
                 <h3 className="font-semibold text-foreground mb-4">Horários Disponíveis</h3>
-                <div className="grid grid-cols-4 sm:grid-cols-5 gap-2">
-                  {timeSlots.map((slot) => (
-                    <button
-                      key={slot.id}
-                      onClick={() => handleSelectSlot(slot)}
-                      disabled={!slot.available}
-                      className={`py-3 px-2 rounded-lg text-sm font-medium transition-all ${
-                        !slot.available
-                          ? 'bg-muted text-muted-foreground cursor-not-allowed'
-                          : selectedSlot?.id === slot.id
-                          ? 'bg-primary text-primary-foreground shadow-glow'
-                          : 'bg-secondary hover:bg-primary/10 text-secondary-foreground'
-                      }`}
-                    >
-                      {slot.time}
-                    </button>
-                  ))}
-                </div>
+                {loadingSlots ? (
+                  <div className="flex items-center justify-center py-8">
+                    <Loader2 className="w-6 h-6 text-primary animate-spin" />
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-4 sm:grid-cols-5 gap-2">
+                    {timeSlots.map((slot) => (
+                      <button
+                        key={slot.id}
+                        onClick={() => handleSelectSlot(slot)}
+                        disabled={!slot.available}
+                        className={`py-3 px-2 rounded-lg text-sm font-medium transition-all ${
+                          !slot.available
+                            ? 'bg-muted text-muted-foreground cursor-not-allowed'
+                            : selectedSlot?.id === slot.id
+                            ? 'bg-primary text-primary-foreground shadow-glow'
+                            : 'bg-secondary hover:bg-primary/10 text-secondary-foreground'
+                        }`}
+                      >
+                        {slot.time}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -356,7 +459,14 @@ const PublicBooking = () => {
                   className="w-full mt-6"
                   disabled={isSubmitting}
                 >
-                  {isSubmitting ? 'Confirmando...' : 'Confirmar Agendamento'}
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                      Confirmando...
+                    </>
+                  ) : (
+                    'Confirmar Agendamento'
+                  )}
                 </Button>
               </form>
             </div>
