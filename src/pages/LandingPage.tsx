@@ -12,7 +12,7 @@ const LandingPage = () => {
             <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center shadow-glow">
               <Calendar className="w-5 h-5 text-primary-foreground" />
             </div>
-            <span className="text-xl font-bold text-foreground">AgendaFácil</span>
+            <span className="text-xl font-bold text-foreground">Agendaberta</span>
           </div>
           <div className="flex items-center gap-3">
             <Link to="/agendar/clinica-demo">
@@ -149,10 +149,10 @@ const LandingPage = () => {
               <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
                 <Calendar className="w-4 h-4 text-primary-foreground" />
               </div>
-              <span className="font-semibold text-foreground">AgendaFácil</span>
+              <span className="font-semibold text-foreground">Agendaberta</span>
             </div>
             <p className="text-sm text-muted-foreground">
-              © 2024 AgendaFácil. Simplifique seus agendamentos.
+              © 2024 Agendaberta. Simplifique seus agendamentos.
             </p>
           </div>
         </div>
