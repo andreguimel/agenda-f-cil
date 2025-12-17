@@ -68,16 +68,17 @@ const PublicBooking = () => {
   // Fetch time slots when professional or date changes
   useEffect(() => {
     const loadTimeSlots = async () => {
-      if (!selectedProfessional) return;
+      if (!selectedProfessional || !clinic) return;
       
       setLoadingSlots(true);
-      const slots = await generateTimeSlots(selectedDate, selectedProfessional.id);
+      // Pass clinicId to check Google Calendar busy times
+      const slots = await generateTimeSlots(selectedDate, selectedProfessional.id, clinic.id);
       setTimeSlots(slots);
       setLoadingSlots(false);
     };
 
     loadTimeSlots();
-  }, [selectedProfessional, selectedDate]);
+  }, [selectedProfessional, selectedDate, clinic]);
 
   const handleSelectProfessional = (professional: Professional) => {
     setSelectedProfessional(professional);

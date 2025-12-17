@@ -294,14 +294,16 @@ export const fetchAppointmentsByProfessionalAndDate = async (
 // Generate available time slots
 export const generateTimeSlots = async (
   date: Date, 
-  professionalId: string
+  professionalId: string,
+  clinicId?: string
 ): Promise<TimeSlot[]> => {
   const dateStr = date.toISOString().split('T')[0];
   
-  // Fetch existing appointments and blocked times
-  const [appointments, blockedTimes] = await Promise.all([
+  // Fetch existing appointments, blocked times, and Google Calendar busy times
+  const [appointments, blockedTimes, googleBusyTimes] = await Promise.all([
     fetchAppointmentsByProfessionalAndDate(professionalId, dateStr),
     fetchBlockedTimes(professionalId, dateStr),
+    clinicId ? getGoogleCalendarBusyTimes(clinicId, dateStr) : Promise.resolve([]),
   ]);
 
   const bookedTimes = new Set(appointments.map(apt => apt.time));
@@ -324,17 +326,22 @@ export const generateTimeSlots = async (
       // Check if time is already booked
       const isBooked = bookedTimes.has(time) || bookedTimes.has(timeWithSeconds);
       
-      // Check if time is blocked
+      // Check if time is blocked in system
       const isBlocked = blockedTimes.some(bt => {
         const start = bt.start_time.substring(0, 5);
         const end = bt.end_time.substring(0, 5);
         return time >= start && time < end;
       });
 
+      // Check if time is busy in Google Calendar
+      const isBusyInGoogle = googleBusyTimes.some(bt => {
+        return time >= bt.start && time < bt.end;
+      });
+
       slots.push({
         id: `${dateStr}-${time}-${professionalId}`,
         time,
-        available: !isPast && !isBooked && !isBlocked,
+        available: !isPast && !isBooked && !isBlocked && !isBusyInGoogle,
       });
     }
   }
