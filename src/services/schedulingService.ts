@@ -608,6 +608,10 @@ export const createAppointment = async (
 // Sync appointment to Google Calendar
 export const syncAppointmentToGoogleCalendar = async (appointment: Appointment) => {
   try {
+    console.log('[syncAppointmentToGoogleCalendar] Starting sync for appointment:', appointment.id);
+    console.log('[syncAppointmentToGoogleCalendar] Clinic ID:', appointment.clinic_id);
+    console.log('[syncAppointmentToGoogleCalendar] Time:', appointment.time);
+    
     const response = await fetch(
       `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/google-calendar-sync`,
       {
@@ -621,11 +625,15 @@ export const syncAppointmentToGoogleCalendar = async (appointment: Appointment) 
       }
     );
 
+    const responseData = await response.json();
+    
     if (!response.ok) {
-      console.log('Google Calendar sync skipped (not connected)');
+      console.log('[syncAppointmentToGoogleCalendar] Sync failed:', responseData);
+    } else {
+      console.log('[syncAppointmentToGoogleCalendar] Sync successful:', responseData);
     }
   } catch (error) {
-    console.error('Error syncing to Google Calendar:', error);
+    console.error('[syncAppointmentToGoogleCalendar] Error syncing to Google Calendar:', error);
   }
 };
 
@@ -943,7 +951,8 @@ export const createAppointmentWithQueue = async (
 
   // Sync with Google Calendar
   if (data) {
-    syncAppointmentToGoogleCalendar(data);
+    console.log('[createAppointmentWithQueue] Appointment created, syncing to Google Calendar...');
+    await syncAppointmentToGoogleCalendar(data);
   }
 
   return { data, error: null };
