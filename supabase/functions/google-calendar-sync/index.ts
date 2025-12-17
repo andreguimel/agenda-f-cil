@@ -279,11 +279,19 @@ serve(async (req) => {
         });
       }
 
+      // Extract time directly from dateTime string to avoid timezone conversion issues
+      // Google returns dateTime like "2025-12-17T12:00:00-03:00" - we extract "12:00" directly
+      const extractTimeFromDateTime = (dateTime: string): string => {
+        // Handle format: "2025-12-17T12:00:00-03:00" or "2025-12-17T12:00:00"
+        const match = dateTime.match(/T(\d{2}:\d{2})/);
+        return match ? match[1] : '00:00';
+      };
+
       const busyTimes = (data.items || [])
         .filter((event: any) => event.start?.dateTime && event.end?.dateTime)
         .map((event: any) => ({
-          start: new Date(event.start.dateTime).toTimeString().slice(0, 5),
-          end: new Date(event.end.dateTime).toTimeString().slice(0, 5),
+          start: extractTimeFromDateTime(event.start.dateTime),
+          end: extractTimeFromDateTime(event.end.dateTime),
           summary: event.summary,
         }));
 
