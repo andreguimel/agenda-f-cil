@@ -11,6 +11,7 @@ import ProfessionalsManagement from "./pages/ProfessionalsManagement";
 import BlockedTimesManagement from "./pages/BlockedTimesManagement";
 import AuthPage from "./pages/AuthPage";
 import NotFound from "./pages/NotFound";
+import DashboardLayout from "./components/DashboardLayout";
 
 const queryClient = new QueryClient();
 
@@ -25,9 +26,14 @@ const App = () => (
             <Route path="/" element={<LandingPage />} />
             <Route path="/auth" element={<AuthPage />} />
             <Route path="/agendar/:clinicSlug" element={<PublicBooking />} />
-            <Route path="/painel" element={<Dashboard />} />
-            <Route path="/painel/profissionais" element={<ProfessionalsManagement />} />
-            <Route path="/painel/horarios" element={<BlockedTimesManagement />} />
+            
+            {/* Dashboard routes with shared layout */}
+            <Route path="/painel" element={<DashboardLayout />}>
+              <Route index element={<Dashboard />} />
+              <Route path="profissionais" element={<ProfessionalsManagement />} />
+              <Route path="horarios" element={<BlockedTimesManagement />} />
+            </Route>
+            
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

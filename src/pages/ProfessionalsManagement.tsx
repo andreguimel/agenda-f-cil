@@ -1,11 +1,9 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { 
   Users, 
   Plus, 
   Pencil, 
   Trash2, 
-  ArrowLeft,
   Loader2,
   User,
   Clock,
@@ -56,8 +54,7 @@ interface ProfessionalFormData {
 
 const ProfessionalsManagement = () => {
   const { toast } = useToast();
-  const { user, loading: authLoading } = useAuth();
-  const navigate = useNavigate();
+  const { user } = useAuth();
 
   const [professionals, setProfessionals] = useState<Professional[]>([]);
   const [loading, setLoading] = useState(true);
@@ -71,12 +68,6 @@ const ProfessionalsManagement = () => {
     avatar_url: '',
   });
   const [submitting, setSubmitting] = useState(false);
-
-  useEffect(() => {
-    if (!authLoading && !user) {
-      navigate('/auth');
-    }
-  }, [user, authLoading, navigate]);
 
   useEffect(() => {
     const loadData = async () => {
@@ -249,34 +240,21 @@ const ProfessionalsManagement = () => {
     }
   };
 
-  if (authLoading || loading) {
+  if (loading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="flex-1 flex items-center justify-center p-6">
         <Loader2 className="w-8 h-8 text-primary animate-spin" />
       </div>
     );
   }
 
-  if (!user) {
-    return null;
-  }
-
   return (
-    <div className="min-h-screen bg-background">
-      <header className="bg-card border-b border-border sticky top-0 z-30">
+    <div className="flex-1">
+      <header className="bg-card border-b border-border sticky top-0 lg:top-0 z-20">
         <div className="flex items-center justify-between px-4 lg:px-6 py-4">
-          <div className="flex items-center gap-3">
-            <Button 
-              variant="ghost" 
-              size="icon"
-              onClick={() => navigate('/painel')}
-            >
-              <ArrowLeft className="w-5 h-5" />
-            </Button>
-            <div>
-              <h1 className="text-xl font-bold text-foreground">Profissionais</h1>
-              <p className="text-sm text-muted-foreground">Gerencie sua equipe</p>
-            </div>
+          <div>
+            <h1 className="text-xl font-bold text-foreground">Profissionais</h1>
+            <p className="text-sm text-muted-foreground">Gerencie sua equipe</p>
           </div>
           
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
