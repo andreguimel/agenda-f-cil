@@ -287,6 +287,13 @@ serve(async (req) => {
         return match ? match[1] : '00:00';
       };
 
+      console.log(`[get-busy-times] Date: ${date}, CalendarId: ${calendarId}`);
+      console.log(`[get-busy-times] Raw events from Google:`, JSON.stringify(data.items?.map((e: any) => ({
+        summary: e.summary,
+        start: e.start?.dateTime,
+        end: e.end?.dateTime
+      })) || [], null, 2));
+
       const busyTimes = (data.items || [])
         .filter((event: any) => event.start?.dateTime && event.end?.dateTime)
         .map((event: any) => ({
@@ -294,6 +301,8 @@ serve(async (req) => {
           end: extractTimeFromDateTime(event.end.dateTime),
           summary: event.summary,
         }));
+
+      console.log(`[get-busy-times] Processed busy times:`, JSON.stringify(busyTimes, null, 2));
 
       return new Response(JSON.stringify({ busyTimes }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
