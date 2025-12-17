@@ -9,12 +9,14 @@ import {
   Trash2, 
   Loader2,
   Calendar,
-  User
+  User,
+  X
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Calendar as CalendarComponent } from '@/components/ui/calendar';
+import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
@@ -64,6 +66,14 @@ import {
 const DEMO_CLINIC_ID = '550e8400-e29b-41d4-a716-446655440000';
 
 interface BlockedTimeFormData {
+  professional_ids: string[];
+  dates: Date[];
+  start_time: string;
+  end_time: string;
+  reason: string;
+}
+
+interface EditFormData {
   professional_id: string;
   date: Date | undefined;
   start_time: string;
@@ -82,13 +92,25 @@ const BlockedTimesManagement = () => {
   const [clinicId, setClinicId] = useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingBlockedTime, setEditingBlockedTime] = useState<BlockedTime | null>(null);
+  
+  // Form data for creating new blocked times (supports multiple)
   const [formData, setFormData] = useState<BlockedTimeFormData>({
+    professional_ids: [],
+    dates: [],
+    start_time: '08:00',
+    end_time: '18:00',
+    reason: '',
+  });
+  
+  // Form data for editing a single blocked time
+  const [editFormData, setEditFormData] = useState<EditFormData>({
     professional_id: '',
     date: undefined,
     start_time: '08:00',
     end_time: '18:00',
     reason: '',
   });
+  
   const [submitting, setSubmitting] = useState(false);
   const [filterProfessional, setFilterProfessional] = useState<string>('all');
 
@@ -125,7 +147,14 @@ const BlockedTimesManagement = () => {
 
   const resetForm = () => {
     setFormData({
-      professional_id: professionals[0]?.id || '',
+      professional_ids: [],
+      dates: [],
+      start_time: '08:00',
+      end_time: '18:00',
+      reason: '',
+    });
+    setEditFormData({
+      professional_id: '',
       date: undefined,
       start_time: '08:00',
       end_time: '18:00',
@@ -137,7 +166,7 @@ const BlockedTimesManagement = () => {
   const handleOpenDialog = (blockedTime?: BlockedTime) => {
     if (blockedTime) {
       setEditingBlockedTime(blockedTime);
-      setFormData({
+      setEditFormData({
         professional_id: blockedTime.professional_id,
         date: parseISO(blockedTime.date),
         start_time: blockedTime.start_time.substring(0, 5),
@@ -146,9 +175,6 @@ const BlockedTimesManagement = () => {
       });
     } else {
       resetForm();
-      if (professionals.length > 0) {
-        setFormData(prev => ({ ...prev, professional_id: professionals[0].id }));
-      }
     }
     setDialogOpen(true);
   };
@@ -158,38 +184,62 @@ const BlockedTimesManagement = () => {
     resetForm();
   };
 
+  const toggleProfessional = (professionalId: string) => {
+    setFormData(prev => ({
+      ...prev,
+      professional_ids: prev.professional_ids.includes(professionalId)
+        ? prev.professional_ids.filter(id => id !== professionalId)
+        : [...prev.professional_ids, professionalId]
+    }));
+  };
+
+  const selectAllProfessionals = () => {
+    setFormData(prev => ({
+      ...prev,
+      professional_ids: professionals.map(p => p.id)
+    }));
+  };
+
+  const clearAllProfessionals = () => {
+    setFormData(prev => ({
+      ...prev,
+      professional_ids: []
+    }));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!clinicId) return;
 
-    if (!formData.professional_id || !formData.date || !formData.start_time || !formData.end_time) {
-      toast({
-        title: 'Erro',
-        description: 'Preencha todos os campos obrigatórios',
-        variant: 'destructive',
-      });
-      return;
-    }
-
-    if (formData.start_time >= formData.end_time) {
-      toast({
-        title: 'Erro',
-        description: 'O horário de início deve ser anterior ao horário de fim',
-        variant: 'destructive',
-      });
-      return;
-    }
-
-    setSubmitting(true);
-    const dateStr = format(formData.date, 'yyyy-MM-dd');
-
     if (editingBlockedTime) {
+      // Editing single blocked time
+      if (!editFormData.professional_id || !editFormData.date || !editFormData.start_time || !editFormData.end_time) {
+        toast({
+          title: 'Erro',
+          description: 'Preencha todos os campos obrigatórios',
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      if (editFormData.start_time >= editFormData.end_time) {
+        toast({
+          title: 'Erro',
+          description: 'O horário de início deve ser anterior ao horário de fim',
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      setSubmitting(true);
+      const dateStr = format(editFormData.date, 'yyyy-MM-dd');
+
       const { error } = await updateBlockedTime(editingBlockedTime.id, {
-        professional_id: formData.professional_id,
+        professional_id: editFormData.professional_id,
         date: dateStr,
-        start_time: formData.start_time,
-        end_time: formData.end_time,
-        reason: formData.reason.trim() || null,
+        start_time: editFormData.start_time,
+        end_time: editFormData.end_time,
+        reason: editFormData.reason.trim() || null,
       });
 
       if (error) {
@@ -199,16 +249,16 @@ const BlockedTimesManagement = () => {
           variant: 'destructive',
         });
       } else {
-        const professional = professionals.find(p => p.id === formData.professional_id);
+        const professional = professionals.find(p => p.id === editFormData.professional_id);
         setBlockedTimes(prev => 
           prev.map(bt => bt.id === editingBlockedTime.id 
             ? { 
                 ...bt, 
-                professional_id: formData.professional_id,
+                professional_id: editFormData.professional_id,
                 date: dateStr,
-                start_time: formData.start_time,
-                end_time: formData.end_time,
-                reason: formData.reason.trim() || null,
+                start_time: editFormData.start_time,
+                end_time: editFormData.end_time,
+                reason: editFormData.reason.trim() || null,
                 professional,
               }
             : bt
@@ -221,26 +271,64 @@ const BlockedTimesManagement = () => {
         handleCloseDialog();
       }
     } else {
-      const { data, error } = await createBlockedTime({
-        professional_id: formData.professional_id,
-        date: dateStr,
-        start_time: formData.start_time,
-        end_time: formData.end_time,
-        reason: formData.reason.trim() || null,
-      });
-
-      if (error || !data) {
+      // Creating new blocked times (multiple professionals and dates)
+      if (formData.professional_ids.length === 0 || formData.dates.length === 0 || !formData.start_time || !formData.end_time) {
         toast({
-          title: 'Erro ao criar',
-          description: 'Não foi possível adicionar o bloqueio',
+          title: 'Erro',
+          description: 'Selecione pelo menos um profissional e uma data',
           variant: 'destructive',
         });
-      } else {
-        const professional = professionals.find(p => p.id === formData.professional_id);
-        setBlockedTimes(prev => [...prev, { ...data, professional }]);
+        return;
+      }
+
+      if (formData.start_time >= formData.end_time) {
         toast({
-          title: 'Bloqueio adicionado',
-          description: 'O horário foi bloqueado com sucesso',
+          title: 'Erro',
+          description: 'O horário de início deve ser anterior ao horário de fim',
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      setSubmitting(true);
+
+      const createdBlockedTimes: BlockedTime[] = [];
+      let hasError = false;
+
+      // Create blocked times for each combination of professional and date
+      for (const professionalId of formData.professional_ids) {
+        for (const date of formData.dates) {
+          const dateStr = format(date, 'yyyy-MM-dd');
+          const { data, error } = await createBlockedTime({
+            professional_id: professionalId,
+            date: dateStr,
+            start_time: formData.start_time,
+            end_time: formData.end_time,
+            reason: formData.reason.trim() || null,
+          });
+
+          if (error || !data) {
+            hasError = true;
+          } else {
+            createdBlockedTimes.push(data);
+          }
+        }
+      }
+
+      if (hasError) {
+        toast({
+          title: 'Erro parcial',
+          description: 'Alguns bloqueios não puderam ser criados',
+          variant: 'destructive',
+        });
+      }
+
+      if (createdBlockedTimes.length > 0) {
+        setBlockedTimes(prev => [...prev, ...createdBlockedTimes]);
+        const totalCreated = createdBlockedTimes.length;
+        toast({
+          title: 'Bloqueios adicionados',
+          description: `${totalCreated} bloqueio${totalCreated > 1 ? 's foram criados' : ' foi criado'} com sucesso`,
         });
         handleCloseDialog();
       }
@@ -307,102 +395,250 @@ const BlockedTimesManagement = () => {
                 Adicionar
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-md">
+            <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>
                   {editingBlockedTime ? 'Editar Bloqueio' : 'Novo Bloqueio'}
                 </DialogTitle>
               </DialogHeader>
               <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="space-y-2">
-                  <Label>Profissional *</Label>
-                  <Select
-                    value={formData.professional_id}
-                    onValueChange={(value) => setFormData(prev => ({ ...prev, professional_id: value }))}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione o profissional" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {professionals.map(p => (
-                        <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                
-                <div className="space-y-2">
-                  <Label>Data *</Label>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        className={cn(
-                          "w-full justify-start text-left font-normal",
-                          !formData.date && "text-muted-foreground"
-                        )}
+                {editingBlockedTime ? (
+                  // Edit mode - single professional and date
+                  <>
+                    <div className="space-y-2">
+                      <Label>Profissional *</Label>
+                      <Select
+                        value={editFormData.professional_id}
+                        onValueChange={(value) => setEditFormData(prev => ({ ...prev, professional_id: value }))}
                       >
-                        <Calendar className="mr-2 h-4 w-4" />
-                        {formData.date ? format(formData.date, "PPP", { locale: ptBR }) : "Selecione a data"}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <CalendarComponent
-                        mode="single"
-                        selected={formData.date}
-                        onSelect={(date) => setFormData(prev => ({ ...prev, date }))}
-                        disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
-                        initialFocus
-                        className={cn("p-3 pointer-events-auto")}
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione o profissional" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {professionals.map(p => (
+                            <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label>Data *</Label>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            className={cn(
+                              "w-full justify-start text-left font-normal",
+                              !editFormData.date && "text-muted-foreground"
+                            )}
+                          >
+                            <Calendar className="mr-2 h-4 w-4" />
+                            {editFormData.date ? format(editFormData.date, "PPP", { locale: ptBR }) : "Selecione a data"}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <CalendarComponent
+                            mode="single"
+                            selected={editFormData.date}
+                            onSelect={(date) => setEditFormData(prev => ({ ...prev, date }))}
+                            disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
+                            initialFocus
+                            className={cn("p-3 pointer-events-auto")}
+                          />
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label>Início *</Label>
+                        <Select
+                          value={editFormData.start_time}
+                          onValueChange={(value) => setEditFormData(prev => ({ ...prev, start_time: value }))}
+                        >
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {timeOptions.map(time => (
+                              <SelectItem key={time} value={time}>{time}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Fim *</Label>
+                        <Select
+                          value={editFormData.end_time}
+                          onValueChange={(value) => setEditFormData(prev => ({ ...prev, end_time: value }))}
+                        >
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {timeOptions.map(time => (
+                              <SelectItem key={time} value={time}>{time}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="reason">Motivo (opcional)</Label>
+                      <Input
+                        id="reason"
+                        placeholder="Ex: Férias, Reunião, etc."
+                        value={editFormData.reason}
+                        onChange={(e) => setEditFormData(prev => ({ ...prev, reason: e.target.value }))}
                       />
-                    </PopoverContent>
-                  </Popover>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>Início *</Label>
-                    <Select
-                      value={formData.start_time}
-                      onValueChange={(value) => setFormData(prev => ({ ...prev, start_time: value }))}
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {timeOptions.map(time => (
-                          <SelectItem key={time} value={time}>{time}</SelectItem>
+                    </div>
+                  </>
+                ) : (
+                  // Create mode - multiple professionals and dates
+                  <>
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <Label>Profissionais *</Label>
+                        <div className="flex gap-2">
+                          <Button 
+                            type="button" 
+                            variant="ghost" 
+                            size="sm"
+                            onClick={selectAllProfessionals}
+                          >
+                            Todos
+                          </Button>
+                          <Button 
+                            type="button" 
+                            variant="ghost" 
+                            size="sm"
+                            onClick={clearAllProfessionals}
+                          >
+                            Limpar
+                          </Button>
+                        </div>
+                      </div>
+                      <div className="border border-border rounded-lg p-3 space-y-2 max-h-40 overflow-y-auto">
+                        {professionals.map(p => (
+                          <div key={p.id} className="flex items-center space-x-2">
+                            <Checkbox
+                              id={`prof-${p.id}`}
+                              checked={formData.professional_ids.includes(p.id)}
+                              onCheckedChange={() => toggleProfessional(p.id)}
+                            />
+                            <label
+                              htmlFor={`prof-${p.id}`}
+                              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                            >
+                              {p.name}
+                            </label>
+                          </div>
                         ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Fim *</Label>
-                    <Select
-                      value={formData.end_time}
-                      onValueChange={(value) => setFormData(prev => ({ ...prev, end_time: value }))}
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {timeOptions.map(time => (
-                          <SelectItem key={time} value={time}>{time}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
+                      </div>
+                      {formData.professional_ids.length > 0 && (
+                        <p className="text-xs text-muted-foreground">
+                          {formData.professional_ids.length} profissional{formData.professional_ids.length > 1 ? 'is' : ''} selecionado{formData.professional_ids.length > 1 ? 's' : ''}
+                        </p>
+                      )}
+                    </div>
+                    
+                    <div className="space-y-3">
+                      <Label>Datas *</Label>
+                      <div className="border border-border rounded-lg p-3">
+                        <CalendarComponent
+                          mode="multiple"
+                          selected={formData.dates}
+                          onSelect={(dates) => setFormData(prev => ({ ...prev, dates: dates || [] }))}
+                          disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
+                          className={cn("p-0 pointer-events-auto")}
+                        />
+                      </div>
+                      {formData.dates.length > 0 && (
+                        <div className="space-y-2">
+                          <p className="text-xs text-muted-foreground">
+                            {formData.dates.length} data{formData.dates.length > 1 ? 's' : ''} selecionada{formData.dates.length > 1 ? 's' : ''}
+                          </p>
+                          <div className="flex flex-wrap gap-1">
+                            {formData.dates.sort((a, b) => a.getTime() - b.getTime()).map((date, i) => (
+                              <span 
+                                key={i}
+                                className="inline-flex items-center gap-1 px-2 py-0.5 bg-secondary text-secondary-foreground rounded text-xs"
+                              >
+                                {format(date, "dd/MM", { locale: ptBR })}
+                                <button
+                                  type="button"
+                                  onClick={() => setFormData(prev => ({
+                                    ...prev,
+                                    dates: prev.dates.filter((_, idx) => idx !== i)
+                                  }))}
+                                  className="hover:text-destructive"
+                                >
+                                  <X className="w-3 h-3" />
+                                </button>
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="reason">Motivo (opcional)</Label>
-                  <Input
-                    id="reason"
-                    placeholder="Ex: Férias, Reunião, etc."
-                    value={formData.reason}
-                    onChange={(e) => setFormData(prev => ({ ...prev, reason: e.target.value }))}
-                  />
-                </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label>Início *</Label>
+                        <Select
+                          value={formData.start_time}
+                          onValueChange={(value) => setFormData(prev => ({ ...prev, start_time: value }))}
+                        >
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {timeOptions.map(time => (
+                              <SelectItem key={time} value={time}>{time}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Fim *</Label>
+                        <Select
+                          value={formData.end_time}
+                          onValueChange={(value) => setFormData(prev => ({ ...prev, end_time: value }))}
+                        >
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {timeOptions.map(time => (
+                              <SelectItem key={time} value={time}>{time}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="reason">Motivo (opcional)</Label>
+                      <Input
+                        id="reason"
+                        placeholder="Ex: Férias, Reunião, etc."
+                        value={formData.reason}
+                        onChange={(e) => setFormData(prev => ({ ...prev, reason: e.target.value }))}
+                      />
+                    </div>
+
+                    {formData.professional_ids.length > 0 && formData.dates.length > 0 && (
+                      <div className="bg-secondary/50 rounded-lg p-3">
+                        <p className="text-sm text-muted-foreground">
+                          Serão criados <strong>{formData.professional_ids.length * formData.dates.length}</strong> bloqueios 
+                          ({formData.professional_ids.length} profissional{formData.professional_ids.length > 1 ? 'is' : ''} × {formData.dates.length} data{formData.dates.length > 1 ? 's' : ''})
+                        </p>
+                      </div>
+                    )}
+                  </>
+                )}
 
                 <DialogFooter>
                   <Button type="button" variant="outline" onClick={handleCloseDialog}>
