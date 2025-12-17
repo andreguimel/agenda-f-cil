@@ -25,8 +25,8 @@ serve(async (req) => {
       const { clinicId, redirectUri } = await req.json();
       
       const scopes = [
+        'https://www.googleapis.com/auth/calendar', // Full access to create calendars
         'https://www.googleapis.com/auth/calendar.events',
-        'https://www.googleapis.com/auth/calendar.readonly'
       ].join(' ');
 
       const state = JSON.stringify({ clinicId, redirectUri });
