@@ -116,7 +116,42 @@ export const createProfessional = async (
     return { data: null, error };
   }
 
+  // Create Google Calendar for this professional
+  if (data) {
+    createGoogleCalendarForProfessional(data);
+  }
+
   return { data, error: null };
+};
+
+// Create Google Calendar for a professional
+export const createGoogleCalendarForProfessional = async (professional: Professional) => {
+  try {
+    const response = await fetch(
+      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/google-calendar-sync`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'create-calendar',
+          clinicId: professional.clinic_id,
+          professional: {
+            id: professional.id,
+            name: professional.name,
+            specialty: professional.specialty,
+          },
+        }),
+      }
+    );
+
+    if (!response.ok) {
+      console.log('Google Calendar creation skipped (not connected or error)');
+    } else {
+      console.log('Google Calendar created for professional:', professional.name);
+    }
+  } catch (error) {
+    console.error('Error creating Google Calendar for professional:', error);
+  }
 };
 
 // Update a professional
