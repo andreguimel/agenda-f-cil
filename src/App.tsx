@@ -7,6 +7,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import LandingPage from "./pages/LandingPage";
 import PublicBooking from "./pages/PublicBooking";
 import Dashboard from "./pages/Dashboard";
+import ProfessionalsManagement from "./pages/ProfessionalsManagement";
 import AuthPage from "./pages/AuthPage";
 import NotFound from "./pages/NotFound";
 
@@ -24,6 +25,7 @@ const App = () => (
             <Route path="/auth" element={<AuthPage />} />
             <Route path="/agendar/:clinicSlug" element={<PublicBooking />} />
             <Route path="/painel" element={<Dashboard />} />
+            <Route path="/painel/profissionais" element={<ProfessionalsManagement />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

@@ -210,7 +210,9 @@ const Dashboard = () => {
           <nav className="flex-1 p-4">
             <div className="space-y-1">
               <SidebarItem icon={<CalendarDays className="w-5 h-5" />} label="Agendamentos" active />
-              <SidebarItem icon={<Users className="w-5 h-5" />} label="Profissionais" />
+              <Link to="/painel/profissionais">
+                <SidebarItem icon={<Users className="w-5 h-5" />} label="Profissionais" />
+              </Link>
               <SidebarItem icon={<Clock className="w-5 h-5" />} label="Horários" />
             </div>
             

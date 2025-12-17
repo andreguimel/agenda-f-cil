@@ -65,7 +65,7 @@ export const fetchClinicBySlug = async (slug: string): Promise<Clinic | null> =>
   return data;
 };
 
-// Fetch professionals by clinic
+// Fetch active professionals by clinic (for booking)
 export const fetchProfessionalsByClinic = async (clinicId: string): Promise<Professional[]> => {
   const { data, error } = await supabase
     .from('professionals')
@@ -80,6 +80,76 @@ export const fetchProfessionalsByClinic = async (clinicId: string): Promise<Prof
   }
 
   return data || [];
+};
+
+// Fetch all professionals by clinic (for management)
+export const fetchAllProfessionalsByClinic = async (clinicId: string): Promise<Professional[]> => {
+  const { data, error } = await supabase
+    .from('professionals')
+    .select('*')
+    .eq('clinic_id', clinicId)
+    .order('name');
+
+  if (error) {
+    console.error('Error fetching professionals:', error);
+    return [];
+  }
+
+  return data || [];
+};
+
+// Create a new professional
+export const createProfessional = async (
+  professional: Omit<Professional, 'id' | 'is_active'>
+): Promise<{ data: Professional | null; error: Error | null }> => {
+  const { data, error } = await supabase
+    .from('professionals')
+    .insert({
+      ...professional,
+      is_active: true,
+    })
+    .select()
+    .single();
+
+  if (error) {
+    console.error('Error creating professional:', error);
+    return { data: null, error };
+  }
+
+  return { data, error: null };
+};
+
+// Update a professional
+export const updateProfessional = async (
+  id: string,
+  updates: Partial<Omit<Professional, 'id' | 'clinic_id'>>
+): Promise<{ error: Error | null }> => {
+  const { error } = await supabase
+    .from('professionals')
+    .update(updates)
+    .eq('id', id);
+
+  if (error) {
+    console.error('Error updating professional:', error);
+    return { error };
+  }
+
+  return { error: null };
+};
+
+// Delete a professional (soft delete by setting is_active to false)
+export const deleteProfessional = async (id: string): Promise<{ error: Error | null }> => {
+  const { error } = await supabase
+    .from('professionals')
+    .delete()
+    .eq('id', id);
+
+  if (error) {
+    console.error('Error deleting professional:', error);
+    return { error };
+  }
+
+  return { error: null };
 };
 
 // Fetch appointments by clinic
