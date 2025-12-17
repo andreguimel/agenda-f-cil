@@ -7,7 +7,6 @@ import {
   Plus, 
   Pencil, 
   Trash2, 
-  ArrowLeft,
   Loader2,
   Calendar,
   User
@@ -74,7 +73,7 @@ interface BlockedTimeFormData {
 
 const BlockedTimesManagement = () => {
   const { toast } = useToast();
-  const { user, loading: authLoading } = useAuth();
+  const { user } = useAuth();
   const navigate = useNavigate();
 
   const [blockedTimes, setBlockedTimes] = useState<BlockedTime[]>([]);
@@ -92,12 +91,6 @@ const BlockedTimesManagement = () => {
   });
   const [submitting, setSubmitting] = useState(false);
   const [filterProfessional, setFilterProfessional] = useState<string>('all');
-
-  useEffect(() => {
-    if (!authLoading && !user) {
-      navigate('/auth');
-    }
-  }, [user, authLoading, navigate]);
 
   useEffect(() => {
     const loadData = async () => {
@@ -290,34 +283,21 @@ const BlockedTimesManagement = () => {
     }
   }
 
-  if (authLoading || loading) {
+  if (loading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="flex-1 flex items-center justify-center p-6">
         <Loader2 className="w-8 h-8 text-primary animate-spin" />
       </div>
     );
   }
 
-  if (!user) {
-    return null;
-  }
-
   return (
-    <div className="min-h-screen bg-background">
-      <header className="bg-card border-b border-border sticky top-0 z-30">
+    <div className="flex-1">
+      <header className="bg-card border-b border-border sticky top-0 lg:top-0 z-20">
         <div className="flex items-center justify-between px-4 lg:px-6 py-4">
-          <div className="flex items-center gap-3">
-            <Button 
-              variant="ghost" 
-              size="icon"
-              onClick={() => navigate('/painel')}
-            >
-              <ArrowLeft className="w-5 h-5" />
-            </Button>
-            <div>
-              <h1 className="text-xl font-bold text-foreground">Horários Bloqueados</h1>
-              <p className="text-sm text-muted-foreground">Gerencie indisponibilidades</p>
-            </div>
+          <div>
+            <h1 className="text-xl font-bold text-foreground">Horários Bloqueados</h1>
+            <p className="text-sm text-muted-foreground">Gerencie indisponibilidades</p>
           </div>
           
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
@@ -500,14 +480,15 @@ const BlockedTimesManagement = () => {
                             <Clock className="w-4 h-4" />
                             {blockedTime.start_time.substring(0, 5)} - {blockedTime.end_time.substring(0, 5)}
                           </span>
-                          {blockedTime.reason && (
-                            <span className="text-xs bg-secondary px-2 py-0.5 rounded">
-                              {blockedTime.reason}
-                            </span>
-                          )}
                         </div>
+                        {blockedTime.reason && (
+                          <p className="text-sm text-muted-foreground mt-1">
+                            Motivo: {blockedTime.reason}
+                          </p>
+                        )}
                       </div>
                     </div>
+
                     <div className="flex gap-1">
                       <Button
                         variant="ghost"
@@ -526,7 +507,7 @@ const BlockedTimesManagement = () => {
                           <AlertDialogHeader>
                             <AlertDialogTitle>Remover bloqueio?</AlertDialogTitle>
                             <AlertDialogDescription>
-                              O horário ficará disponível para agendamentos novamente.
+                              Esta ação irá liberar o horário para agendamentos.
                             </AlertDialogDescription>
                           </AlertDialogHeader>
                           <AlertDialogFooter>
