@@ -110,7 +110,7 @@ const PublicBooking = () => {
     const { error } = await createAppointment({
       clinic_id: clinic.id,
       professional_id: selectedProfessional.id,
-      date: selectedDate.toISOString().split('T')[0],
+      date: format(selectedDate, 'yyyy-MM-dd'), // Use local date format instead of toISOString
       time: selectedSlot.time,
       patient_name: formData.name.trim(),
       patient_email: formData.email.trim(),
