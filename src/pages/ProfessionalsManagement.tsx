@@ -323,72 +323,82 @@ const ProfessionalsManagement = () => {
                 Adicionar
               </Button>
             </DialogTrigger>
-            <DialogContent>
+            <DialogContent className="max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>
                   {editingProfessional ? 'Editar Profissional' : 'Novo Profissional'}
                 </DialogTitle>
               </DialogHeader>
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="name">Nome *</Label>
-                  <Input
-                    id="name"
-                    placeholder="Nome completo"
-                    value={formData.name}
-                    onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                    required
-                  />
+              <form onSubmit={handleSubmit} className="space-y-3">
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <Label htmlFor="name" className="text-sm">Nome *</Label>
+                    <Input
+                      id="name"
+                      placeholder="Nome completo"
+                      className="h-9"
+                      value={formData.name}
+                      onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label htmlFor="specialty" className="text-sm">Especialidade *</Label>
+                    <Input
+                      id="specialty"
+                      placeholder="Ex: Psicólogo"
+                      className="h-9"
+                      value={formData.specialty}
+                      onChange={(e) => setFormData(prev => ({ ...prev, specialty: e.target.value }))}
+                      required
+                    />
+                  </div>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="specialty">Especialidade *</Label>
-                  <Input
-                    id="specialty"
-                    placeholder="Ex: Cardiologista, Dentista"
-                    value={formData.specialty}
-                    onChange={(e) => setFormData(prev => ({ ...prev, specialty: e.target.value }))}
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="duration">Duração da consulta (minutos)</Label>
-                  <Input
-                    id="duration"
-                    type="number"
-                    min={15}
-                    max={180}
-                    step={5}
-                    value={formData.duration}
-                    onChange={(e) => setFormData(prev => ({ ...prev, duration: parseInt(e.target.value) || 30 }))}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="avatar_url">URL da foto (opcional)</Label>
-                  <Input
-                    id="avatar_url"
-                    placeholder="https://..."
-                    value={formData.avatar_url}
-                    onChange={(e) => setFormData(prev => ({ ...prev, avatar_url: e.target.value }))}
-                  />
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <Label htmlFor="duration" className="text-sm">Duração (min)</Label>
+                    <Input
+                      id="duration"
+                      type="number"
+                      min={15}
+                      max={180}
+                      step={5}
+                      className="h-9"
+                      value={formData.duration}
+                      onChange={(e) => setFormData(prev => ({ ...prev, duration: parseInt(e.target.value) || 30 }))}
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label htmlFor="avatar_url" className="text-sm">Foto (URL)</Label>
+                    <Input
+                      id="avatar_url"
+                      placeholder="https://..."
+                      className="h-9"
+                      value={formData.avatar_url}
+                      onChange={(e) => setFormData(prev => ({ ...prev, avatar_url: e.target.value }))}
+                    />
+                  </div>
                 </div>
                 
-                <div className="border-t border-border pt-4 mt-4">
-                  <h4 className="font-medium text-foreground mb-3">Horário de Atendimento</h4>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-2">
-                      <Label htmlFor="work_start_time">Início</Label>
+                <div className="border-t border-border pt-3 mt-3">
+                  <h4 className="font-medium text-foreground text-sm mb-2">Horário de Atendimento</h4>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="space-y-1">
+                      <Label htmlFor="work_start_time" className="text-xs">Início</Label>
                       <Input
                         id="work_start_time"
                         type="time"
+                        className="h-9"
                         value={formData.work_start_time}
                         onChange={(e) => setFormData(prev => ({ ...prev, work_start_time: e.target.value }))}
                       />
                     </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="work_end_time">Fim</Label>
+                    <div className="space-y-1">
+                      <Label htmlFor="work_end_time" className="text-xs">Fim</Label>
                       <Input
                         id="work_end_time"
                         type="time"
+                        className="h-9"
                         value={formData.work_end_time}
                         onChange={(e) => setFormData(prev => ({ ...prev, work_end_time: e.target.value }))}
                       />
@@ -396,31 +406,33 @@ const ProfessionalsManagement = () => {
                   </div>
                 </div>
 
-                <div className="space-y-3">
+                <div className="space-y-2">
                   <div className="flex items-center gap-2">
                     <Checkbox
                       id="has_lunch_break"
                       checked={formData.has_lunch_break}
                       onCheckedChange={(checked) => setFormData(prev => ({ ...prev, has_lunch_break: checked === true }))}
                     />
-                    <Label htmlFor="has_lunch_break" className="cursor-pointer">Tem intervalo de almoço</Label>
+                    <Label htmlFor="has_lunch_break" className="cursor-pointer text-sm">Tem intervalo de almoço</Label>
                   </div>
                   {formData.has_lunch_break && (
-                    <div className="grid grid-cols-2 gap-3 pl-6">
-                      <div className="space-y-2">
-                        <Label htmlFor="lunch_start_time">Início do almoço</Label>
+                    <div className="grid grid-cols-2 gap-2 pl-6">
+                      <div className="space-y-1">
+                        <Label htmlFor="lunch_start_time" className="text-xs">Início</Label>
                         <Input
                           id="lunch_start_time"
                           type="time"
+                          className="h-9"
                           value={formData.lunch_start_time}
                           onChange={(e) => setFormData(prev => ({ ...prev, lunch_start_time: e.target.value }))}
                         />
                       </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="lunch_end_time">Fim do almoço</Label>
+                      <div className="space-y-1">
+                        <Label htmlFor="lunch_end_time" className="text-xs">Fim</Label>
                         <Input
                           id="lunch_end_time"
                           type="time"
+                          className="h-9"
                           value={formData.lunch_end_time}
                           onChange={(e) => setFormData(prev => ({ ...prev, lunch_end_time: e.target.value }))}
                         />
@@ -429,7 +441,7 @@ const ProfessionalsManagement = () => {
                   )}
                 </div>
 
-                <div className="space-y-3">
+                <div className="space-y-2">
                   <div className="flex items-center gap-2">
                     <Checkbox
                       id="has_advance_limit"
@@ -439,59 +451,52 @@ const ProfessionalsManagement = () => {
                         max_advance_days: checked ? 365 : null 
                       }))}
                     />
-                    <Label htmlFor="has_advance_limit" className="cursor-pointer">Limitar agendamento futuro</Label>
+                    <Label htmlFor="has_advance_limit" className="cursor-pointer text-sm">Limitar agendamento futuro</Label>
                   </div>
                   {formData.max_advance_days !== null && (
-                    <div className="pl-6 space-y-2">
-                      <Label htmlFor="max_advance_days">Quantidade de dias</Label>
+                    <div className="pl-6 space-y-1">
+                      <Label htmlFor="max_advance_days" className="text-xs">Quantidade de dias</Label>
                       <Input
                         id="max_advance_days"
                         type="number"
                         min={7}
                         max={730}
+                        className="h-9"
                         value={formData.max_advance_days}
                         onChange={(e) => setFormData(prev => ({ ...prev, max_advance_days: parseInt(e.target.value) || 365 }))}
                       />
                       <p className="text-xs text-muted-foreground">
-                        Pacientes poderão agendar até <span className="font-medium text-foreground">{format(addDays(new Date(), formData.max_advance_days), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}</span>
+                        Até {format(addDays(new Date(), formData.max_advance_days), "dd/MM/yyyy", { locale: ptBR })}
                       </p>
                     </div>
                   )}
                 </div>
 
-                <div className="border-t border-border pt-4 mt-4">
-                  <h4 className="font-medium text-foreground mb-3">Modo de Agendamento</h4>
-                  <div className="space-y-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="scheduling_mode">Como os pacientes agendam?</Label>
-                      <Select
-                        value={formData.scheduling_mode}
-                        onValueChange={(value) => setFormData(prev => ({ ...prev, scheduling_mode: value }))}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecione o modo" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="time_slots">Por horário específico</SelectItem>
-                          <SelectItem value="arrival_order">Por ordem de chegada (turno)</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <p className="text-xs text-muted-foreground">
-                        {formData.scheduling_mode === 'time_slots' 
-                          ? 'Pacientes escolhem um horário específico para a consulta'
-                          : 'Pacientes escolhem um turno e são atendidos por ordem de chegada'}
-                      </p>
-                    </div>
+                <div className="border-t border-border pt-3 mt-3">
+                  <h4 className="font-medium text-foreground text-sm mb-2">Modo de Agendamento</h4>
+                  <div className="space-y-2">
+                    <Select
+                      value={formData.scheduling_mode}
+                      onValueChange={(value) => setFormData(prev => ({ ...prev, scheduling_mode: value }))}
+                    >
+                      <SelectTrigger className="h-9">
+                        <SelectValue placeholder="Selecione o modo" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="time_slots">Por horário específico</SelectItem>
+                        <SelectItem value="arrival_order">Por ordem de chegada</SelectItem>
+                      </SelectContent>
+                    </Select>
 
                     {formData.scheduling_mode === 'arrival_order' && (
-                      <div className="flex items-center gap-2 pl-0">
+                      <div className="flex items-center gap-2">
                         <Checkbox
                           id="show_queue_position"
                           checked={formData.show_queue_position}
                           onCheckedChange={(checked) => setFormData(prev => ({ ...prev, show_queue_position: checked === true }))}
                         />
-                        <Label htmlFor="show_queue_position" className="cursor-pointer text-sm">
-                          Permitir que pacientes vejam sua posição na fila
+                        <Label htmlFor="show_queue_position" className="cursor-pointer text-xs">
+                          Pacientes podem ver posição na fila
                         </Label>
                       </div>
                     )}
