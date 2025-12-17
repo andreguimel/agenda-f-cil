@@ -74,7 +74,7 @@ serve(async (req) => {
 
   try {
     const supabase = createClient(SUPABASE_URL!, SUPABASE_SERVICE_ROLE_KEY!);
-    const { action, clinicId, appointment, date } = await req.json();
+    const { action, clinicId, appointment, date, professionalId } = await req.json();
 
     const accessToken = await getValidAccessToken(supabase, clinicId);
     if (!accessToken) {
@@ -88,19 +88,59 @@ serve(async (req) => {
       // Create event in Google Calendar
       const { data: professional } = await supabase
         .from('professionals')
-        .select('name, specialty, duration')
+        .select('name, specialty, duration, google_calendar_id')
         .eq('id', appointment.professional_id)
         .single();
 
-      const { data: clinic } = await supabase
-        .from('clinics')
-        .select('name')
-        .eq('id', clinicId)
-        .single();
+      if (!professional) {
+        return new Response(JSON.stringify({ error: 'Professional not found' }), {
+          status: 404,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      let calendarId = professional.google_calendar_id;
+
+      // If professional doesn't have a calendar yet, create one
+      if (!calendarId) {
+        console.log(`Creating new calendar for professional: ${professional.name}`);
+        
+        const createCalendarResponse = await fetch('https://www.googleapis.com/calendar/v3/calendars', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${accessToken}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            summary: professional.name,
+            description: `Agenda de ${professional.name} - ${professional.specialty}`,
+            timeZone: 'America/Sao_Paulo',
+          }),
+        });
+
+        const newCalendar = await createCalendarResponse.json();
+
+        if (newCalendar.error) {
+          console.error('Error creating calendar:', newCalendar.error);
+          return new Response(JSON.stringify({ error: newCalendar.error.message }), {
+            status: 500,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
+
+        calendarId = newCalendar.id;
+        console.log(`Created calendar with ID: ${calendarId}`);
+
+        // Save the calendar ID to the professional record
+        await supabase
+          .from('professionals')
+          .update({ google_calendar_id: calendarId })
+          .eq('id', appointment.professional_id);
+      }
 
       // Format time properly - appointment.time might be "08:00" or "08:00:00"
       const timeStr = appointment.time.substring(0, 5); // Get "HH:MM"
-      const duration = professional?.duration || 30;
+      const duration = professional.duration || 30;
       
       // Parse hours and minutes
       const [hours, minutes] = timeStr.split(':').map(Number);
@@ -109,11 +149,9 @@ serve(async (req) => {
       const endMins = endMinutes % 60;
       const endTimeStr = `${endHours.toString().padStart(2, '0')}:${endMins.toString().padStart(2, '0')}`;
 
-      // Use date and time directly without converting to ISO
-      // Google Calendar will interpret these as the specified timezone
       const event = {
         summary: `Consulta: ${appointment.patient_name}`,
-        description: `Paciente: ${appointment.patient_name}\nTelefone: ${appointment.patient_phone}\nEmail: ${appointment.patient_email}\nProfissional: ${professional?.name}\n${appointment.notes ? `Observações: ${appointment.notes}` : ''}`,
+        description: `Paciente: ${appointment.patient_name}\nTelefone: ${appointment.patient_phone}\nEmail: ${appointment.patient_email}\n${appointment.notes ? `Observações: ${appointment.notes}` : ''}`,
         start: {
           dateTime: `${appointment.date}T${timeStr}:00`,
           timeZone: 'America/Sao_Paulo',
@@ -124,9 +162,9 @@ serve(async (req) => {
         },
       };
 
-      console.log('Creating event:', JSON.stringify(event, null, 2));
+      console.log(`Creating event in calendar ${calendarId}:`, JSON.stringify(event, null, 2));
 
-      const response = await fetch('https://www.googleapis.com/calendar/v3/calendars/primary/events', {
+      const response = await fetch(`https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${accessToken}`,
@@ -151,7 +189,7 @@ serve(async (req) => {
         .update({ google_event_id: createdEvent.id })
         .eq('id', appointment.id);
 
-      return new Response(JSON.stringify({ success: true, eventId: createdEvent.id }), {
+      return new Response(JSON.stringify({ success: true, eventId: createdEvent.id, calendarId }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
@@ -163,8 +201,17 @@ serve(async (req) => {
         });
       }
 
+      // Get the professional's calendar ID
+      const { data: professional } = await supabase
+        .from('professionals')
+        .select('google_calendar_id')
+        .eq('id', appointment.professional_id)
+        .single();
+
+      const calendarId = professional?.google_calendar_id || 'primary';
+
       const response = await fetch(
-        `https://www.googleapis.com/calendar/v3/calendars/primary/events/${appointment.google_event_id}`,
+        `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events/${appointment.google_event_id}`,
         {
           method: 'DELETE',
           headers: {
@@ -184,13 +231,26 @@ serve(async (req) => {
     }
 
     if (action === 'get-busy-times') {
-      // Fetch busy times from Google Calendar for a specific date
-      const startOfDay = new Date(`${date}T00:00:00`);
-      const endOfDay = new Date(`${date}T23:59:59`);
+      // Fetch busy times from Google Calendar for a specific date and professional
+      let calendarId = 'primary';
+      
+      // If professionalId is provided, get their specific calendar
+      if (professionalId) {
+        const { data: professional } = await supabase
+          .from('professionals')
+          .select('google_calendar_id')
+          .eq('id', professionalId)
+          .single();
+        
+        if (professional?.google_calendar_id) {
+          calendarId = professional.google_calendar_id;
+        }
+      }
 
+      // Use local date format to avoid timezone issues
       const response = await fetch(
-        `https://www.googleapis.com/calendar/v3/calendars/primary/events?` +
-        `timeMin=${startOfDay.toISOString()}&timeMax=${endOfDay.toISOString()}&singleEvents=true`,
+        `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events?` +
+        `timeMin=${date}T00:00:00-03:00&timeMax=${date}T23:59:59-03:00&singleEvents=true&timeZone=America/Sao_Paulo`,
         {
           headers: {
             'Authorization': `Bearer ${accessToken}`,

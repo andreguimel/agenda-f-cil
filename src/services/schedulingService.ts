@@ -297,13 +297,13 @@ export const generateTimeSlots = async (
   professionalId: string,
   clinicId?: string
 ): Promise<TimeSlot[]> => {
-  const dateStr = date.toISOString().split('T')[0];
+  const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
   
   // Fetch existing appointments, blocked times, and Google Calendar busy times
   const [appointments, blockedTimes, googleBusyTimes] = await Promise.all([
     fetchAppointmentsByProfessionalAndDate(professionalId, dateStr),
     fetchBlockedTimes(professionalId, dateStr),
-    clinicId ? getGoogleCalendarBusyTimes(clinicId, dateStr) : Promise.resolve([]),
+    clinicId ? getGoogleCalendarBusyTimes(clinicId, dateStr, professionalId) : Promise.resolve([]),
   ]);
 
   const bookedTimes = new Set(appointments.map(apt => apt.time));
@@ -402,7 +402,8 @@ export const syncAppointmentToGoogleCalendar = async (appointment: Appointment) 
 // Get busy times from Google Calendar
 export const getGoogleCalendarBusyTimes = async (
   clinicId: string,
-  date: string
+  date: string,
+  professionalId?: string
 ): Promise<{ start: string; end: string }[]> => {
   try {
     const response = await fetch(
@@ -414,6 +415,7 @@ export const getGoogleCalendarBusyTimes = async (
           action: 'get-busy-times',
           clinicId,
           date,
+          professionalId,
         }),
       }
     );
