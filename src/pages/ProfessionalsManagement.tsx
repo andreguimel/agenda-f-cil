@@ -1,4 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
+import { format, addDays } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 import { 
   Users, 
   Plus, 
@@ -418,7 +420,7 @@ const ProfessionalsManagement = () => {
                     onChange={(e) => setFormData(prev => ({ ...prev, max_advance_days: parseInt(e.target.value) || 365 }))}
                   />
                   <p className="text-xs text-muted-foreground">
-                    Ex: 365 = 1 ano, 30 = 1 mês. Pacientes não poderão agendar além deste limite.
+                    Pacientes poderão agendar até <span className="font-medium text-foreground">{format(addDays(new Date(), formData.max_advance_days), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}</span>
                   </p>
                 </div>
                 <DialogFooter>
