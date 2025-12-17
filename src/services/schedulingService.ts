@@ -41,6 +41,7 @@ export interface BlockedTime {
   start_time: string;
   end_time: string;
   reason: string | null;
+  google_event_id?: string | null;
 }
 
 export interface TimeSlot {
@@ -316,7 +317,84 @@ export const createBlockedTime = async (
     return { data: null, error };
   }
 
+  // Sync with Google Calendar
+  if (data) {
+    syncBlockedTimeToGoogleCalendar(data);
+  }
+
   return { data, error: null };
+};
+
+// Sync blocked time to Google Calendar
+export const syncBlockedTimeToGoogleCalendar = async (blockedTime: BlockedTime) => {
+  try {
+    // Get professional to find clinic_id
+    const { data: professional } = await supabase
+      .from('professionals')
+      .select('clinic_id')
+      .eq('id', blockedTime.professional_id)
+      .single();
+
+    if (!professional) return;
+
+    const response = await fetch(
+      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/google-calendar-sync`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'create-blocked-event',
+          clinicId: professional.clinic_id,
+          blockedTime,
+        }),
+      }
+    );
+
+    if (!response.ok) {
+      console.log('Google Calendar sync skipped for blocked time (not connected)');
+    } else {
+      console.log('Blocked time synced to Google Calendar');
+    }
+  } catch (error) {
+    console.error('Error syncing blocked time to Google Calendar:', error);
+  }
+};
+
+// Delete blocked time Google Calendar event
+export const deleteBlockedTimeGoogleEvent = async (blockedTime: BlockedTime) => {
+  if (!blockedTime.google_event_id) return;
+  
+  try {
+    // Get professional to find clinic_id
+    const { data: professional } = await supabase
+      .from('professionals')
+      .select('clinic_id')
+      .eq('id', blockedTime.professional_id)
+      .single();
+
+    if (!professional) return;
+
+    const response = await fetch(
+      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/google-calendar-sync`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'delete-blocked-event',
+          clinicId: professional.clinic_id,
+          blockedTime,
+        }),
+      }
+    );
+
+    if (!response.ok) {
+      console.log('Google Calendar event deletion skipped (not connected)');
+    } else {
+      console.log('Blocked time event deleted from Google Calendar');
+    }
+  } catch (error) {
+    console.error('Error deleting blocked time from Google Calendar:', error);
+  }
 };
 
 // Update blocked time
@@ -339,6 +417,17 @@ export const updateBlockedTime = async (
 
 // Delete blocked time
 export const deleteBlockedTime = async (id: string): Promise<{ error: Error | null }> => {
+  // First fetch the blocked time to get google_event_id
+  const { data: blockedTime } = await supabase
+    .from('blocked_times')
+    .select('*')
+    .eq('id', id)
+    .single();
+
+  if (blockedTime) {
+    await deleteBlockedTimeGoogleEvent(blockedTime as BlockedTime);
+  }
+
   const { error } = await supabase
     .from('blocked_times')
     .delete()

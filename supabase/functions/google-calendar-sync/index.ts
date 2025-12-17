@@ -74,7 +74,7 @@ serve(async (req) => {
 
   try {
     const supabase = createClient(SUPABASE_URL!, SUPABASE_SERVICE_ROLE_KEY!);
-    const { action, clinicId, appointment, date, professionalId, professional: professionalData } = await req.json();
+    const { action, clinicId, appointment, date, professionalId, professional: professionalData, blockedTime } = await req.json();
 
     const accessToken = await getValidAccessToken(supabase, clinicId);
     if (!accessToken) {
@@ -201,6 +201,113 @@ serve(async (req) => {
         .eq('id', appointment.id);
 
       return new Response(JSON.stringify({ success: true, eventId: createdEvent.id, calendarId }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    if (action === 'create-blocked-event') {
+      // Create event for blocked time in Google Calendar
+      if (!blockedTime) {
+        return new Response(JSON.stringify({ error: 'Blocked time data required' }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      const { data: professional } = await supabase
+        .from('professionals')
+        .select('name, google_calendar_id')
+        .eq('id', blockedTime.professional_id)
+        .single();
+
+      if (!professional) {
+        return new Response(JSON.stringify({ error: 'Professional not found' }), {
+          status: 404,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      const calendarId = professional.google_calendar_id || 'primary';
+      const startTime = blockedTime.start_time.substring(0, 5);
+      const endTime = blockedTime.end_time.substring(0, 5);
+
+      const event = {
+        summary: blockedTime.reason || 'Horário Bloqueado',
+        description: `Bloqueio manual - ${professional.name}`,
+        start: {
+          dateTime: `${blockedTime.date}T${startTime}:00`,
+          timeZone: 'America/Sao_Paulo',
+        },
+        end: {
+          dateTime: `${blockedTime.date}T${endTime}:00`,
+          timeZone: 'America/Sao_Paulo',
+        },
+        colorId: '11', // Red color for blocked times
+      };
+
+      console.log(`Creating blocked event in calendar ${calendarId}:`, JSON.stringify(event, null, 2));
+
+      const response = await fetch(`https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(event),
+      });
+
+      const createdEvent = await response.json();
+
+      if (createdEvent.error) {
+        console.error('Google Calendar error:', createdEvent.error);
+        return new Response(JSON.stringify({ error: createdEvent.error.message }), {
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      // Update blocked_time with Google event ID
+      await supabase
+        .from('blocked_times')
+        .update({ google_event_id: createdEvent.id })
+        .eq('id', blockedTime.id);
+
+      return new Response(JSON.stringify({ success: true, eventId: createdEvent.id, calendarId }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    if (action === 'delete-blocked-event') {
+      if (!blockedTime?.google_event_id) {
+        return new Response(JSON.stringify({ success: true, message: 'No event to delete' }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      const { data: professional } = await supabase
+        .from('professionals')
+        .select('google_calendar_id')
+        .eq('id', blockedTime.professional_id)
+        .single();
+
+      const calendarId = professional?.google_calendar_id || 'primary';
+
+      const response = await fetch(
+        `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events/${blockedTime.google_event_id}`,
+        {
+          method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${accessToken}`,
+          },
+        }
+      );
+
+      if (!response.ok && response.status !== 404) {
+        const error = await response.json();
+        console.error('Google Calendar delete error:', error);
+      }
+
+      return new Response(JSON.stringify({ success: true }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
