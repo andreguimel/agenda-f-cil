@@ -213,7 +213,9 @@ const Dashboard = () => {
               <Link to="/painel/profissionais">
                 <SidebarItem icon={<Users className="w-5 h-5" />} label="Profissionais" />
               </Link>
-              <SidebarItem icon={<Clock className="w-5 h-5" />} label="Horários" />
+              <Link to="/painel/horarios">
+                <SidebarItem icon={<Clock className="w-5 h-5" />} label="Horários" />
+              </Link>
             </div>
             
             {/* Google Calendar Integration */}

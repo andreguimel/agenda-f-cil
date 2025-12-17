@@ -172,7 +172,7 @@ export const fetchAppointmentsByClinic = async (clinicId: string): Promise<Appoi
   return data || [];
 };
 
-// Fetch blocked times by professional
+// Fetch blocked times by professional and date
 export const fetchBlockedTimes = async (professionalId: string, date: string): Promise<BlockedTime[]> => {
   const { data, error } = await supabase
     .from('blocked_times')
@@ -186,6 +186,89 @@ export const fetchBlockedTimes = async (professionalId: string, date: string): P
   }
 
   return data || [];
+};
+
+// Fetch all blocked times by clinic
+export const fetchAllBlockedTimes = async (clinicId: string): Promise<BlockedTime[]> => {
+  // First get all professional IDs for this clinic
+  const { data: professionals, error: profError } = await supabase
+    .from('professionals')
+    .select('id')
+    .eq('clinic_id', clinicId);
+
+  if (profError || !professionals?.length) {
+    console.error('Error fetching professionals for blocked times:', profError);
+    return [];
+  }
+
+  const professionalIds = professionals.map(p => p.id);
+
+  const { data, error } = await supabase
+    .from('blocked_times')
+    .select(`
+      *,
+      professional:professionals(*)
+    `)
+    .in('professional_id', professionalIds)
+    .order('date', { ascending: true });
+
+  if (error) {
+    console.error('Error fetching all blocked times:', error);
+    return [];
+  }
+
+  return data || [];
+};
+
+// Create blocked time
+export const createBlockedTime = async (
+  blockedTime: Omit<BlockedTime, 'id'>
+): Promise<{ data: BlockedTime | null; error: Error | null }> => {
+  const { data, error } = await supabase
+    .from('blocked_times')
+    .insert(blockedTime)
+    .select()
+    .single();
+
+  if (error) {
+    console.error('Error creating blocked time:', error);
+    return { data: null, error };
+  }
+
+  return { data, error: null };
+};
+
+// Update blocked time
+export const updateBlockedTime = async (
+  id: string,
+  updates: Partial<Omit<BlockedTime, 'id'>>
+): Promise<{ error: Error | null }> => {
+  const { error } = await supabase
+    .from('blocked_times')
+    .update(updates)
+    .eq('id', id);
+
+  if (error) {
+    console.error('Error updating blocked time:', error);
+    return { error };
+  }
+
+  return { error: null };
+};
+
+// Delete blocked time
+export const deleteBlockedTime = async (id: string): Promise<{ error: Error | null }> => {
+  const { error } = await supabase
+    .from('blocked_times')
+    .delete()
+    .eq('id', id);
+
+  if (error) {
+    console.error('Error deleting blocked time:', error);
+    return { error };
+  }
+
+  return { error: null };
 };
 
 // Fetch existing appointments for a professional on a specific date
