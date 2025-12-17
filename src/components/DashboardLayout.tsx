@@ -205,8 +205,11 @@ const DashboardLayout = () => {
               <Link to="/painel" onClick={() => setSidebarOpen(false)}>
                 <SidebarItem icon={<CalendarDays className="w-5 h-5" />} label="Agendamentos" active={isActive('/painel')} />
               </Link>
+              <Link to="/painel/fila" onClick={() => setSidebarOpen(false)}>
+                <SidebarItem icon={<Users className="w-5 h-5" />} label="Fila do Dia" active={isActive('/painel/fila')} />
+              </Link>
               <Link to="/painel/profissionais" onClick={() => setSidebarOpen(false)}>
-                <SidebarItem icon={<Users className="w-5 h-5" />} label="Profissionais" active={isActive('/painel/profissionais')} />
+                <SidebarItem icon={<User className="w-5 h-5" />} label="Profissionais" active={isActive('/painel/profissionais')} />
               </Link>
               <Link to="/painel/turnos" onClick={() => setSidebarOpen(false)}>
                 <SidebarItem icon={<ListOrdered className="w-5 h-5" />} label="Turnos" active={isActive('/painel/turnos')} />
