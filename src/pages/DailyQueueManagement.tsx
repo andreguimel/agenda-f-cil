@@ -9,8 +9,7 @@ import {
   RefreshCw,
   UserCheck,
   UserX,
-  CalendarDays,
-  ExternalLink
+  CalendarDays
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
@@ -102,16 +101,6 @@ const DailyQueueManagement = () => {
         </div>
         
         <div className="flex items-center gap-2">
-          {clinic && (
-            <Button 
-              variant="outline" 
-              className="gap-2"
-              onClick={() => window.open(`/fila/${clinic.slug}`, '_blank')}
-            >
-              <ExternalLink className="w-4 h-4" />
-              Ver página pública
-            </Button>
-          )}
           <Popover>
             <PopoverTrigger asChild>
               <Button variant="outline" className="gap-2">
