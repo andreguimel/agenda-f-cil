@@ -9,7 +9,9 @@ import {
   RefreshCw,
   UserCheck,
   UserX,
-  CalendarDays
+  CalendarDays,
+  Phone,
+  CheckCircle2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
@@ -19,6 +21,7 @@ import { useToast } from '@/hooks/use-toast';
 import { 
   fetchClinicQueue,
   markPatientArrived,
+  markPatientAttended,
   Clinic,
   Appointment
 } from '@/services/schedulingService';
@@ -76,12 +79,34 @@ const DailyQueueManagement = () => {
     loadData(true);
   };
 
-  // Separate waiting (scheduled) and arrived (confirmed with queue_position)
-  const getWaitingAndArrived = (appointments: Appointment[]) => {
+  const handleMarkAttended = async (appointment: Appointment) => {
+    const { error } = await markPatientAttended(appointment.id);
+    
+    if (error) {
+      toast({
+        title: 'Erro',
+        description: 'Não foi possível marcar como atendido',
+        variant: 'destructive',
+      });
+      return;
+    }
+    
+    toast({
+      title: 'Paciente atendido!',
+      description: `${appointment.patient_name} foi marcado como atendido`,
+    });
+    
+    loadData(true);
+  };
+
+  // Separate waiting (scheduled), arrived (confirmed with queue_position), and completed
+  const getWaitingArrivedCompleted = (appointments: Appointment[]) => {
     const waiting = appointments.filter(a => a.status === 'scheduled');
     const arrived = appointments.filter(a => a.status === 'confirmed' && a.queue_position !== null)
       .sort((a, b) => (a.queue_position || 0) - (b.queue_position || 0));
-    return { waiting, arrived };
+    const completed = appointments.filter(a => a.status === 'completed')
+      .sort((a, b) => (a.queue_position || 0) - (b.queue_position || 0));
+    return { waiting, arrived, completed };
   };
 
   if (loading) {
@@ -147,7 +172,7 @@ const DailyQueueManagement = () => {
 
               <div className="divide-y divide-border">
                 {shifts.map(({ shiftName, appointments }) => {
-                  const { waiting, arrived } = getWaitingAndArrived(appointments);
+                  const { waiting, arrived, completed } = getWaitingArrivedCompleted(appointments);
                   
                   return (
                     <div key={shiftName} className="p-4">
@@ -158,33 +183,39 @@ const DailyQueueManagement = () => {
                         </span>
                       </div>
                       
-                      <div className="grid md:grid-cols-2 gap-4">
+                      <div className="grid md:grid-cols-3 gap-4">
                         {/* Waiting to arrive */}
                         <div>
                           <div className="flex items-center gap-2 mb-2">
                             <UserX className="w-4 h-4 text-amber-500" />
                             <span className="text-sm font-medium text-foreground">
-                              Aguardando chegada ({waiting.length})
+                              Aguardando ({waiting.length})
                             </span>
                           </div>
                           {waiting.length === 0 ? (
                             <p className="text-sm text-muted-foreground bg-secondary/50 rounded-lg p-3">
-                              Nenhum paciente aguardando
+                              Nenhum aguardando
                             </p>
                           ) : (
                             <div className="space-y-2">
                               {waiting.map((apt) => (
-                                <div key={apt.id} className="flex items-center justify-between p-3 rounded-lg bg-amber-500/10 border border-amber-500/20">
-                                  <span className="text-sm text-foreground">{apt.patient_name}</span>
-                                  <Button 
-                                    size="sm" 
-                                    variant="outline"
-                                    className="h-7 text-xs"
-                                    onClick={() => handleMarkArrived(apt)}
-                                  >
-                                    <UserCheck className="w-3 h-3 mr-1" />
-                                    Chegou
-                                  </Button>
+                                <div key={apt.id} className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/20">
+                                  <div className="flex items-center justify-between mb-2">
+                                    <span className="font-medium text-sm text-foreground">{apt.patient_name}</span>
+                                    <Button 
+                                      size="sm" 
+                                      variant="outline"
+                                      className="h-7 text-xs"
+                                      onClick={() => handleMarkArrived(apt)}
+                                    >
+                                      <UserCheck className="w-3 h-3 mr-1" />
+                                      Chegou
+                                    </Button>
+                                  </div>
+                                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                    <Phone className="w-3 h-3" />
+                                    <span>{apt.patient_phone}</span>
+                                  </div>
                                 </div>
                               ))}
                             </div>
@@ -201,16 +232,65 @@ const DailyQueueManagement = () => {
                           </div>
                           {arrived.length === 0 ? (
                             <p className="text-sm text-muted-foreground bg-secondary/50 rounded-lg p-3">
-                              Nenhum paciente na fila
+                              Nenhum na fila
                             </p>
                           ) : (
                             <div className="space-y-2">
                               {arrived.map((apt) => (
-                                <div key={apt.id} className="flex items-center gap-3 p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
-                                  <div className="w-7 h-7 rounded-full bg-emerald-500 flex items-center justify-center text-xs font-bold text-white">
-                                    {apt.queue_position}
+                                <div key={apt.id} className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
+                                  <div className="flex items-center justify-between mb-2">
+                                    <div className="flex items-center gap-2">
+                                      <div className="w-7 h-7 rounded-full bg-emerald-500 flex items-center justify-center text-xs font-bold text-white">
+                                        {apt.queue_position}
+                                      </div>
+                                      <span className="font-medium text-sm text-foreground">{apt.patient_name}</span>
+                                    </div>
+                                    <Button 
+                                      size="sm" 
+                                      variant="default"
+                                      className="h-7 text-xs"
+                                      onClick={() => handleMarkAttended(apt)}
+                                    >
+                                      <CheckCircle2 className="w-3 h-3 mr-1" />
+                                      Atendido
+                                    </Button>
                                   </div>
-                                  <span className="text-sm text-foreground">{apt.patient_name}</span>
+                                  <div className="flex items-center gap-2 text-xs text-muted-foreground ml-9">
+                                    <Phone className="w-3 h-3" />
+                                    <span>{apt.patient_phone}</span>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Completed */}
+                        <div>
+                          <div className="flex items-center gap-2 mb-2">
+                            <CheckCircle2 className="w-4 h-4 text-blue-500" />
+                            <span className="text-sm font-medium text-foreground">
+                              Atendidos ({completed.length})
+                            </span>
+                          </div>
+                          {completed.length === 0 ? (
+                            <p className="text-sm text-muted-foreground bg-secondary/50 rounded-lg p-3">
+                              Nenhum atendido
+                            </p>
+                          ) : (
+                            <div className="space-y-2">
+                              {completed.map((apt) => (
+                                <div key={apt.id} className="p-3 rounded-lg bg-blue-500/10 border border-blue-500/20 opacity-70">
+                                  <div className="flex items-center gap-2 mb-1">
+                                    <div className="w-6 h-6 rounded-full bg-blue-500/50 flex items-center justify-center text-xs font-bold text-white">
+                                      {apt.queue_position}
+                                    </div>
+                                    <span className="font-medium text-sm text-foreground">{apt.patient_name}</span>
+                                  </div>
+                                  <div className="flex items-center gap-2 text-xs text-muted-foreground ml-8">
+                                    <Phone className="w-3 h-3" />
+                                    <span>{apt.patient_phone}</span>
+                                  </div>
                                 </div>
                               ))}
                             </div>
