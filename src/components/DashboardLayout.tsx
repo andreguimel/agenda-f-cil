@@ -15,7 +15,8 @@ import {
   Loader2,
   Settings,
   Pencil,
-  CalendarDays
+  CalendarDays,
+  ListOrdered
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -207,8 +208,11 @@ const DashboardLayout = () => {
               <Link to="/painel/profissionais" onClick={() => setSidebarOpen(false)}>
                 <SidebarItem icon={<Users className="w-5 h-5" />} label="Profissionais" active={isActive('/painel/profissionais')} />
               </Link>
+              <Link to="/painel/turnos" onClick={() => setSidebarOpen(false)}>
+                <SidebarItem icon={<ListOrdered className="w-5 h-5" />} label="Turnos" active={isActive('/painel/turnos')} />
+              </Link>
               <Link to="/painel/horarios" onClick={() => setSidebarOpen(false)}>
-                <SidebarItem icon={<Clock className="w-5 h-5" />} label="Horários" active={isActive('/painel/horarios')} />
+                <SidebarItem icon={<Clock className="w-5 h-5" />} label="Bloqueios" active={isActive('/painel/horarios')} />
               </Link>
             </div>
             
