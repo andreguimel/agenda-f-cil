@@ -535,11 +535,59 @@ export const getGoogleCalendarBusyTimes = async (
   }
 };
 
+// Delete event from Google Calendar
+export const deleteGoogleCalendarEvent = async (appointment: {
+  clinic_id: string;
+  professional_id: string;
+  google_event_id: string | null;
+}) => {
+  if (!appointment.google_event_id) return;
+  
+  try {
+    const response = await fetch(
+      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/google-calendar-sync`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'delete-event',
+          clinicId: appointment.clinic_id,
+          appointment: {
+            professional_id: appointment.professional_id,
+            google_event_id: appointment.google_event_id,
+          },
+        }),
+      }
+    );
+
+    if (!response.ok) {
+      console.log('Google Calendar event deletion skipped (not connected)');
+    } else {
+      console.log('Google Calendar event deleted successfully');
+    }
+  } catch (error) {
+    console.error('Error deleting Google Calendar event:', error);
+  }
+};
+
 // Update appointment status
 export const updateAppointmentStatus = async (
   id: string, 
   status: string
 ): Promise<{ error: Error | null }> => {
+  // If cancelling, first fetch the appointment to get google_event_id
+  if (status === 'cancelled') {
+    const { data: appointment } = await supabase
+      .from('appointments')
+      .select('clinic_id, professional_id, google_event_id')
+      .eq('id', id)
+      .single();
+    
+    if (appointment) {
+      await deleteGoogleCalendarEvent(appointment);
+    }
+  }
+
   const { error } = await supabase
     .from('appointments')
     .update({ status })
