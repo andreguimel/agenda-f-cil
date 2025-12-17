@@ -195,6 +195,7 @@ export type Database = {
           clinic_id: string
           created_at: string
           duration: number
+          google_calendar_id: string | null
           id: string
           is_active: boolean
           name: string
@@ -206,6 +207,7 @@ export type Database = {
           clinic_id: string
           created_at?: string
           duration?: number
+          google_calendar_id?: string | null
           id?: string
           is_active?: boolean
           name: string
@@ -217,6 +219,7 @@ export type Database = {
           clinic_id?: string
           created_at?: string
           duration?: number
+          google_calendar_id?: string | null
           id?: string
           is_active?: boolean
           name?: string
