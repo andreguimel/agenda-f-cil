@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { 
@@ -19,6 +19,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useOutletContext } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 import { 
   fetchClinicQueue,
   markPatientArrived,
@@ -45,7 +46,7 @@ const DailyQueueManagement = () => {
 
   const dateStr = format(selectedDate, 'yyyy-MM-dd');
 
-  const loadData = async (showRefreshing = false) => {
+  const loadData = useCallback(async (showRefreshing = false) => {
     if (!clinic) return;
     
     if (showRefreshing) setRefreshing(true);
@@ -56,11 +57,39 @@ const DailyQueueManagement = () => {
     
     setLoading(false);
     setRefreshing(false);
-  };
+  }, [clinic, dateStr]);
 
+  // Load data on mount and when clinic/date changes
   useEffect(() => {
     loadData();
-  }, [clinic, dateStr]);
+  }, [loadData]);
+
+  // Subscribe to realtime updates
+  useEffect(() => {
+    if (!clinic) return;
+
+    const channel = supabase
+      .channel('queue-realtime')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'appointments',
+          filter: `clinic_id=eq.${clinic.id}`,
+        },
+        (payload) => {
+          console.log('Realtime update received:', payload);
+          // Reload data when any appointment changes
+          loadData(true);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [clinic, loadData]);
 
   const handleMarkArrived = async (appointment: Appointment) => {
     const { error, queuePosition } = await markPatientArrived(appointment.id);
