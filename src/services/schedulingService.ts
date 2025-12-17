@@ -917,13 +917,19 @@ export const getAvailableSlotsForShift = async (
 
 // Create appointment for arrival order mode (no queue position yet - assigned when patient arrives)
 export const createAppointmentWithQueue = async (
-  appointment: Omit<Appointment, 'id' | 'created_at' | 'status' | 'notes' | 'professional' | 'time'> & { shift_name: string }
+  appointment: Omit<Appointment, 'id' | 'created_at' | 'status' | 'notes' | 'professional' | 'time'> & { shift_name: string; shift_start_time?: string }
 ): Promise<{ data: Appointment | null; error: Error | null }> => {
+  // Use shift start time if provided, otherwise use placeholder
+  const time = appointment.shift_start_time || '00:00';
+  
+  // Remove shift_start_time from the data to insert (it's not a column)
+  const { shift_start_time, ...appointmentData } = appointment;
+  
   const { data, error } = await supabase
     .from('appointments')
     .insert({
-      ...appointment,
-      time: '00:00', // Placeholder for arrival order mode
+      ...appointmentData,
+      time, // Use shift start time for correct Google Calendar sync
       status: 'scheduled', // Scheduled but not arrived yet
       queue_position: null, // Position assigned when patient arrives
     })

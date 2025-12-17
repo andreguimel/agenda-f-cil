@@ -156,6 +156,7 @@ const PublicBooking = () => {
         professional_id: selectedProfessional.id,
         date: format(selectedDate, 'yyyy-MM-dd'),
         shift_name: selectedShift.shift_name,
+        shift_start_time: selectedShift.start_time, // Use shift start time for Google Calendar
         patient_name: formData.name.trim(),
         patient_email: formData.email.trim(),
         patient_phone: formData.phone.trim(),
