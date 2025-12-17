@@ -35,6 +35,17 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import {
   Sheet,
   SheetContent,
   SheetHeader,
@@ -616,30 +627,53 @@ const AppointmentCard = ({ appointment, onCancel, showDate }: AppointmentCardPro
           </div>
         </div>
 
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon">
-              <MoreVertical className="w-4 h-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem className="flex items-center gap-2">
-              <Phone className="w-4 h-4" />
-              {appointment.patient_phone}
-            </DropdownMenuItem>
-            <DropdownMenuItem className="flex items-center gap-2">
-              <Mail className="w-4 h-4" />
-              {appointment.patient_email}
-            </DropdownMenuItem>
-            <DropdownMenuItem 
-              className="flex items-center gap-2 text-destructive"
-              onClick={() => onCancel(appointment.id)}
-            >
-              <XCircle className="w-4 h-4" />
-              Cancelar Consulta
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <AlertDialog>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon">
+                <MoreVertical className="w-4 h-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem className="flex items-center gap-2">
+                <Phone className="w-4 h-4" />
+                {appointment.patient_phone}
+              </DropdownMenuItem>
+              <DropdownMenuItem className="flex items-center gap-2">
+                <Mail className="w-4 h-4" />
+                {appointment.patient_email}
+              </DropdownMenuItem>
+              <AlertDialogTrigger asChild>
+                <DropdownMenuItem 
+                  className="flex items-center gap-2 text-destructive"
+                  onSelect={(e) => e.preventDefault()}
+                >
+                  <XCircle className="w-4 h-4" />
+                  Cancelar Consulta
+                </DropdownMenuItem>
+              </AlertDialogTrigger>
+            </DropdownMenuContent>
+          </DropdownMenu>
+          
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Cancelar consulta?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Esta ação irá cancelar a consulta de <strong>{appointment.patient_name}</strong> e 
+                remover o evento do Google Calendar. Esta ação não pode ser desfeita.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Voltar</AlertDialogCancel>
+              <AlertDialogAction 
+                onClick={() => onCancel(appointment.id)}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                Sim, cancelar
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </div>
   );
