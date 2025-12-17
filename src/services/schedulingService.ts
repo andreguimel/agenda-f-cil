@@ -1092,26 +1092,44 @@ export const fetchClinicQueue = async (
 
   const result = await Promise.all(
     professionals.map(async (prof) => {
-      // Get shifts for this day
-      const dateObj = new Date(date + 'T00:00:00');
-      const dayOfWeek = dateObj.getDay();
-      
-      const { data: shifts } = await supabase
-        .from('professional_shifts')
-        .select('*')
+      // Get all appointments for this professional on this date that have a shift_name
+      const { data: appointments } = await supabase
+        .from('appointments')
+        .select(`
+          *,
+          professional:professionals(*)
+        `)
         .eq('professional_id', prof.id)
-        .eq('day_of_week', dayOfWeek)
-        .eq('is_active', true);
+        .eq('date', date)
+        .not('shift_name', 'is', null)
+        .neq('status', 'cancelled')
+        .order('queue_position', { ascending: true, nullsFirst: false });
 
-      const shiftsWithQueue = await Promise.all(
-        (shifts || []).map(async (shift) => {
-          const appointments = await fetchQueueByDateAndShift(prof.id, date, shift.shift_name);
-          return {
-            shiftName: shift.shift_name,
-            appointments,
-          };
+      // Group appointments by shift_name
+      const shiftGroups: Record<string, Appointment[]> = {};
+      (appointments || []).forEach((apt) => {
+        const shiftName = apt.shift_name || 'unknown';
+        if (!shiftGroups[shiftName]) {
+          shiftGroups[shiftName] = [];
+        }
+        shiftGroups[shiftName].push(apt as Appointment);
+      });
+
+      // Convert to array format, ordered by typical shift order
+      const shiftOrder = ['morning', 'afternoon', 'evening'];
+      const shiftsWithQueue = Object.keys(shiftGroups)
+        .sort((a, b) => {
+          const aIdx = shiftOrder.indexOf(a);
+          const bIdx = shiftOrder.indexOf(b);
+          if (aIdx === -1 && bIdx === -1) return a.localeCompare(b);
+          if (aIdx === -1) return 1;
+          if (bIdx === -1) return -1;
+          return aIdx - bIdx;
         })
-      );
+        .map((shiftName) => ({
+          shiftName,
+          appointments: shiftGroups[shiftName],
+        }));
 
       return {
         professional: prof as Professional,
@@ -1120,5 +1138,6 @@ export const fetchClinicQueue = async (
     })
   );
 
-  return result;
+  // Filter out professionals with no appointments
+  return result.filter(r => r.shifts.length > 0);
 };
