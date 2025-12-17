@@ -316,6 +316,15 @@ const PublicBooking = () => {
                     </Button>
                   </div>
                 </div>
+
+                {/* Month indicator */}
+                <p className="text-sm font-medium text-foreground mb-3 text-center capitalize">
+                  {(() => {
+                    const firstMonth = format(visibleDates[0], 'MMMM yyyy', { locale: ptBR });
+                    const lastMonth = format(visibleDates[visibleDates.length - 1], 'MMMM yyyy', { locale: ptBR });
+                    return firstMonth === lastMonth ? firstMonth : `${firstMonth} - ${lastMonth}`;
+                  })()}
+                </p>
                 
                 <div className="grid grid-cols-7 gap-2">
                   {visibleDates.map((date) => (
