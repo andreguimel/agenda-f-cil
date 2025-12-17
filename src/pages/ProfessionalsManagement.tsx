@@ -12,6 +12,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import {
@@ -50,6 +51,12 @@ interface ProfessionalFormData {
   specialty: string;
   duration: number;
   avatar_url: string;
+  work_start_time: string;
+  work_end_time: string;
+  has_lunch_break: boolean;
+  lunch_start_time: string;
+  lunch_end_time: string;
+  max_advance_days: number;
 }
 
 const ProfessionalsManagement = () => {
@@ -66,6 +73,12 @@ const ProfessionalsManagement = () => {
     specialty: '',
     duration: 30,
     avatar_url: '',
+    work_start_time: '08:00',
+    work_end_time: '18:00',
+    has_lunch_break: false,
+    lunch_start_time: '12:00',
+    lunch_end_time: '13:00',
+    max_advance_days: 365,
   });
   const [submitting, setSubmitting] = useState(false);
 
@@ -101,6 +114,12 @@ const ProfessionalsManagement = () => {
       specialty: '',
       duration: 30,
       avatar_url: '',
+      work_start_time: '08:00',
+      work_end_time: '18:00',
+      has_lunch_break: false,
+      lunch_start_time: '12:00',
+      lunch_end_time: '13:00',
+      max_advance_days: 365,
     });
     setEditingProfessional(null);
   };
@@ -113,6 +132,12 @@ const ProfessionalsManagement = () => {
         specialty: professional.specialty,
         duration: professional.duration,
         avatar_url: professional.avatar_url || '',
+        work_start_time: professional.work_start_time || '08:00',
+        work_end_time: professional.work_end_time || '18:00',
+        has_lunch_break: professional.has_lunch_break || false,
+        lunch_start_time: professional.lunch_start_time || '12:00',
+        lunch_end_time: professional.lunch_end_time || '13:00',
+        max_advance_days: professional.max_advance_days || 365,
       });
     } else {
       resetForm();
@@ -146,6 +171,12 @@ const ProfessionalsManagement = () => {
         specialty: formData.specialty.trim(),
         duration: formData.duration,
         avatar_url: formData.avatar_url.trim() || null,
+        work_start_time: formData.work_start_time,
+        work_end_time: formData.work_end_time,
+        has_lunch_break: formData.has_lunch_break,
+        lunch_start_time: formData.lunch_start_time,
+        lunch_end_time: formData.lunch_end_time,
+        max_advance_days: formData.max_advance_days,
       });
 
       if (error) {
@@ -174,6 +205,12 @@ const ProfessionalsManagement = () => {
         specialty: formData.specialty.trim(),
         duration: formData.duration,
         avatar_url: formData.avatar_url.trim() || null,
+        work_start_time: formData.work_start_time,
+        work_end_time: formData.work_end_time,
+        has_lunch_break: formData.has_lunch_break,
+        lunch_start_time: formData.lunch_start_time,
+        lunch_end_time: formData.lunch_end_time,
+        max_advance_days: formData.max_advance_days,
       });
 
       if (error || !data) {
@@ -311,6 +348,78 @@ const ProfessionalsManagement = () => {
                     value={formData.avatar_url}
                     onChange={(e) => setFormData(prev => ({ ...prev, avatar_url: e.target.value }))}
                   />
+                </div>
+                
+                <div className="border-t border-border pt-4 mt-4">
+                  <h4 className="font-medium text-foreground mb-3">Horário de Atendimento</h4>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-2">
+                      <Label htmlFor="work_start_time">Início</Label>
+                      <Input
+                        id="work_start_time"
+                        type="time"
+                        value={formData.work_start_time}
+                        onChange={(e) => setFormData(prev => ({ ...prev, work_start_time: e.target.value }))}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="work_end_time">Fim</Label>
+                      <Input
+                        id="work_end_time"
+                        type="time"
+                        value={formData.work_end_time}
+                        onChange={(e) => setFormData(prev => ({ ...prev, work_end_time: e.target.value }))}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <Checkbox
+                      id="has_lunch_break"
+                      checked={formData.has_lunch_break}
+                      onCheckedChange={(checked) => setFormData(prev => ({ ...prev, has_lunch_break: checked === true }))}
+                    />
+                    <Label htmlFor="has_lunch_break" className="cursor-pointer">Tem intervalo de almoço</Label>
+                  </div>
+                  {formData.has_lunch_break && (
+                    <div className="grid grid-cols-2 gap-3 pl-6">
+                      <div className="space-y-2">
+                        <Label htmlFor="lunch_start_time">Início do almoço</Label>
+                        <Input
+                          id="lunch_start_time"
+                          type="time"
+                          value={formData.lunch_start_time}
+                          onChange={(e) => setFormData(prev => ({ ...prev, lunch_start_time: e.target.value }))}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="lunch_end_time">Fim do almoço</Label>
+                        <Input
+                          id="lunch_end_time"
+                          type="time"
+                          value={formData.lunch_end_time}
+                          onChange={(e) => setFormData(prev => ({ ...prev, lunch_end_time: e.target.value }))}
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="max_advance_days">Limite de agendamento futuro (dias)</Label>
+                  <Input
+                    id="max_advance_days"
+                    type="number"
+                    min={7}
+                    max={730}
+                    value={formData.max_advance_days}
+                    onChange={(e) => setFormData(prev => ({ ...prev, max_advance_days: parseInt(e.target.value) || 365 }))}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Ex: 365 = 1 ano, 30 = 1 mês. Pacientes não poderão agendar além deste limite.
+                  </p>
                 </div>
                 <DialogFooter>
                   <Button type="button" variant="outline" onClick={handleCloseDialog}>

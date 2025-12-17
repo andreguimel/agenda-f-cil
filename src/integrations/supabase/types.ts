@@ -199,11 +199,17 @@ export type Database = {
           created_at: string
           duration: number
           google_calendar_id: string | null
+          has_lunch_break: boolean | null
           id: string
           is_active: boolean
+          lunch_end_time: string | null
+          lunch_start_time: string | null
+          max_advance_days: number | null
           name: string
           specialty: string
           updated_at: string
+          work_end_time: string | null
+          work_start_time: string | null
         }
         Insert: {
           avatar_url?: string | null
@@ -211,11 +217,17 @@ export type Database = {
           created_at?: string
           duration?: number
           google_calendar_id?: string | null
+          has_lunch_break?: boolean | null
           id?: string
           is_active?: boolean
+          lunch_end_time?: string | null
+          lunch_start_time?: string | null
+          max_advance_days?: number | null
           name: string
           specialty: string
           updated_at?: string
+          work_end_time?: string | null
+          work_start_time?: string | null
         }
         Update: {
           avatar_url?: string | null
@@ -223,11 +235,17 @@ export type Database = {
           created_at?: string
           duration?: number
           google_calendar_id?: string | null
+          has_lunch_break?: boolean | null
           id?: string
           is_active?: boolean
+          lunch_end_time?: string | null
+          lunch_start_time?: string | null
+          max_advance_days?: number | null
           name?: string
           specialty?: string
           updated_at?: string
+          work_end_time?: string | null
+          work_start_time?: string | null
         }
         Relationships: [
           {

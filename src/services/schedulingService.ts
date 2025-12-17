@@ -17,6 +17,12 @@ export interface Professional {
   avatar_url: string | null;
   duration: number;
   is_active: boolean;
+  work_start_time: string;
+  work_end_time: string;
+  has_lunch_break: boolean;
+  lunch_start_time: string;
+  lunch_end_time: string;
+  max_advance_days: number;
 }
 
 export interface Appointment {
