@@ -65,6 +65,52 @@ export const fetchClinicBySlug = async (slug: string): Promise<Clinic | null> =>
   return data;
 };
 
+// Fetch clinic by ID
+export const fetchClinicById = async (clinicId: string): Promise<Clinic | null> => {
+  const { data, error } = await supabase
+    .from('clinics')
+    .select('*')
+    .eq('id', clinicId)
+    .maybeSingle();
+
+  if (error) {
+    console.error('Error fetching clinic:', error);
+    return null;
+  }
+
+  return data;
+};
+
+// Update clinic slug
+export const updateClinicSlug = async (
+  clinicId: string,
+  newSlug: string
+): Promise<{ error: Error | null }> => {
+  // Check if slug is already taken
+  const { data: existing } = await supabase
+    .from('clinics')
+    .select('id')
+    .eq('slug', newSlug)
+    .neq('id', clinicId)
+    .maybeSingle();
+
+  if (existing) {
+    return { error: new Error('Este link já está em uso') };
+  }
+
+  const { error } = await supabase
+    .from('clinics')
+    .update({ slug: newSlug })
+    .eq('id', clinicId);
+
+  if (error) {
+    console.error('Error updating clinic slug:', error);
+    return { error };
+  }
+
+  return { error: null };
+};
+
 // Fetch active professionals by clinic (for booking)
 export const fetchProfessionalsByClinic = async (clinicId: string): Promise<Professional[]> => {
   const { data, error } = await supabase
