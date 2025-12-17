@@ -380,6 +380,8 @@ export const generateTimeSlots = async (
 ): Promise<TimeSlot[]> => {
   const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
   
+  console.log(`[generateTimeSlots] Generating slots for date: ${dateStr}, professional: ${professionalId}`);
+  
   // Fetch professional data to get duration
   const { data: professional } = await supabase
     .from('professionals')
@@ -388,6 +390,7 @@ export const generateTimeSlots = async (
     .single();
 
   const duration = professional?.duration || 30;
+  console.log(`[generateTimeSlots] Professional duration: ${duration} minutes`);
   
   // Fetch existing appointments, blocked times, and Google Calendar busy times
   const [appointments, blockedTimes, googleBusyTimes] = await Promise.all([
@@ -396,12 +399,18 @@ export const generateTimeSlots = async (
     clinicId ? getGoogleCalendarBusyTimes(clinicId, dateStr, professionalId) : Promise.resolve([]),
   ]);
 
+  console.log(`[generateTimeSlots] Appointments found:`, appointments.map(a => ({ time: a.time, patient: a.patient_name })));
+  console.log(`[generateTimeSlots] Blocked times:`, blockedTimes.map(b => ({ start: b.start_time, end: b.end_time })));
+  console.log(`[generateTimeSlots] Google busy times:`, googleBusyTimes);
+
   // Create a map of booked time ranges (considering appointment duration)
   const bookedRanges: { start: number; end: number }[] = appointments.map(apt => {
     const [h, m] = apt.time.split(':').map(Number);
     const startMinutes = h * 60 + m;
     return { start: startMinutes, end: startMinutes + duration };
   });
+  
+  console.log(`[generateTimeSlots] Booked ranges (minutes):`, bookedRanges);
   
   const slots: TimeSlot[] = [];
   const startHour = 8;
@@ -442,12 +451,20 @@ export const generateTimeSlots = async (
       return (minutes < busyEnd && slotEnd > busyStart);
     });
 
+    const available = !isPast && !isBooked && !isBlocked && !isBusyInGoogle;
+    
+    if (!available) {
+      console.log(`[generateTimeSlots] Slot ${time} unavailable - isPast: ${isPast}, isBooked: ${isBooked}, isBlocked: ${isBlocked}, isBusyInGoogle: ${isBusyInGoogle}`);
+    }
+
     slots.push({
       id: `${dateStr}-${time}-${professionalId}`,
       time,
-      available: !isPast && !isBooked && !isBlocked && !isBusyInGoogle,
+      available,
     });
   }
+
+  console.log(`[generateTimeSlots] Generated ${slots.length} slots, ${slots.filter(s => s.available).length} available`);
 
   return slots;
 };
