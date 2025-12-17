@@ -43,6 +43,7 @@ import {
   getUserProfile,
   linkProfileToClinic,
   updateAppointmentStatus,
+  markPatientArrived,
   Appointment,
   Professional,
   Clinic
@@ -127,6 +128,27 @@ const Dashboard = () => {
     toast({
       title: 'Consulta cancelada',
       description: 'O paciente será notificado',
+    });
+  };
+
+  const handleMarkArrived = async (id: string) => {
+    const { data, error, queuePosition } = await markPatientArrived(id);
+    
+    if (error || !data) {
+      toast({
+        title: 'Erro',
+        description: 'Não foi possível marcar a chegada do paciente',
+        variant: 'destructive',
+      });
+      return;
+    }
+    
+    setAppointments(prev => 
+      prev.map(apt => apt.id === id ? { ...apt, status: 'confirmed', queue_position: queuePosition } : apt)
+    );
+    toast({
+      title: 'Paciente na fila',
+      description: `Posição na fila: ${queuePosition}º`,
     });
   };
 
@@ -223,6 +245,7 @@ const Dashboard = () => {
                   key={apt.id} 
                   appointment={apt} 
                   onCancel={handleCancelAppointment}
+                  onMarkArrived={handleMarkArrived}
                 />
               ))}
             </div>
@@ -239,6 +262,7 @@ const Dashboard = () => {
                   key={apt.id} 
                   appointment={apt} 
                   onCancel={handleCancelAppointment}
+                  onMarkArrived={handleMarkArrived}
                   showDate
                 />
               ))}
@@ -286,10 +310,11 @@ const StatCard = ({ label, value, icon, color }: StatCardProps) => {
 interface AppointmentCardProps {
   appointment: Appointment;
   onCancel: (id: string) => void;
+  onMarkArrived: (id: string) => void;
   showDate?: boolean;
 }
 
-const AppointmentCard = ({ appointment, onCancel, showDate }: AppointmentCardProps) => {
+const AppointmentCard = ({ appointment, onCancel, onMarkArrived, showDate }: AppointmentCardProps) => {
   const formatDate = (dateStr: string) => {
     const date = parseISO(dateStr);
     if (isTomorrow(date)) return 'Amanhã';
@@ -297,6 +322,8 @@ const AppointmentCard = ({ appointment, onCancel, showDate }: AppointmentCardPro
   };
 
   const professionalName = appointment.professional?.name || 'Profissional';
+  const isArrivalOrder = appointment.shift_name && appointment.time === '00:00:00';
+  const isWaitingArrival = isArrivalOrder && appointment.status === 'scheduled';
 
   return (
     <div className="bg-card rounded-xl border border-border p-4 hover:shadow-md transition-all">
@@ -315,61 +342,88 @@ const AppointmentCard = ({ appointment, onCancel, showDate }: AppointmentCardPro
                   {formatDate(appointment.date)}
                 </span>
               )}
-              <span className="flex items-center gap-1">
-                <Clock className="w-4 h-4" />
-                {appointment.time.substring(0, 5)}
-              </span>
+              {isArrivalOrder ? (
+                <>
+                  <span className="flex items-center gap-1">
+                    <Clock className="w-4 h-4" />
+                    {appointment.shift_name}
+                  </span>
+                  {appointment.queue_position && (
+                    <span className="flex items-center gap-1 text-primary font-medium">
+                      Fila: {appointment.queue_position}º
+                    </span>
+                  )}
+                </>
+              ) : (
+                <span className="flex items-center gap-1">
+                  <Clock className="w-4 h-4" />
+                  {appointment.time.substring(0, 5)}
+                </span>
+              )}
             </div>
           </div>
         </div>
 
-        <AlertDialog>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon">
-                <MoreVertical className="w-4 h-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem className="flex items-center gap-2">
-                <Phone className="w-4 h-4" />
-                {appointment.patient_phone}
-              </DropdownMenuItem>
-              <DropdownMenuItem className="flex items-center gap-2">
-                <Mail className="w-4 h-4" />
-                {appointment.patient_email}
-              </DropdownMenuItem>
-              <AlertDialogTrigger asChild>
-                <DropdownMenuItem 
-                  className="flex items-center gap-2 text-destructive"
-                  onSelect={(e) => e.preventDefault()}
-                >
-                  <XCircle className="w-4 h-4" />
-                  Cancelar Consulta
-                </DropdownMenuItem>
-              </AlertDialogTrigger>
-            </DropdownMenuContent>
-          </DropdownMenu>
+        <div className="flex items-center gap-2">
+          {isWaitingArrival && (
+            <Button 
+              variant="default" 
+              size="sm"
+              onClick={() => onMarkArrived(appointment.id)}
+            >
+              <Check className="w-4 h-4 mr-1" />
+              Chegou
+            </Button>
+          )}
           
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Cancelar consulta?</AlertDialogTitle>
-              <AlertDialogDescription>
-                Esta ação irá cancelar a consulta de <strong>{appointment.patient_name}</strong> e 
-                remover o evento do Google Calendar. Esta ação não pode ser desfeita.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Voltar</AlertDialogCancel>
-              <AlertDialogAction 
-                onClick={() => onCancel(appointment.id)}
-                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              >
-                Sim, cancelar
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+          <AlertDialog>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon">
+                  <MoreVertical className="w-4 h-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem className="flex items-center gap-2">
+                  <Phone className="w-4 h-4" />
+                  {appointment.patient_phone}
+                </DropdownMenuItem>
+                <DropdownMenuItem className="flex items-center gap-2">
+                  <Mail className="w-4 h-4" />
+                  {appointment.patient_email}
+                </DropdownMenuItem>
+                <AlertDialogTrigger asChild>
+                  <DropdownMenuItem 
+                    className="flex items-center gap-2 text-destructive"
+                    onSelect={(e) => e.preventDefault()}
+                  >
+                    <XCircle className="w-4 h-4" />
+                    Cancelar Consulta
+                  </DropdownMenuItem>
+                </AlertDialogTrigger>
+              </DropdownMenuContent>
+            </DropdownMenu>
+            
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Cancelar consulta?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Esta ação irá cancelar a consulta de <strong>{appointment.patient_name}</strong> e 
+                  remover o evento do Google Calendar. Esta ação não pode ser desfeita.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Voltar</AlertDialogCancel>
+                <AlertDialogAction 
+                  onClick={() => onCancel(appointment.id)}
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                >
+                  Sim, cancelar
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </div>
       </div>
     </div>
   );

@@ -51,6 +51,8 @@ export interface Appointment {
   status: string;
   notes: string | null;
   created_at: string;
+  shift_name?: string | null;
+  queue_position?: number | null;
 }
 
 export interface BlockedTime {
@@ -913,38 +915,76 @@ export const getAvailableSlotsForShift = async (
   };
 };
 
-// Create appointment with queue position (for arrival order mode)
+// Create appointment for arrival order mode (no queue position yet - assigned when patient arrives)
 export const createAppointmentWithQueue = async (
   appointment: Omit<Appointment, 'id' | 'created_at' | 'status' | 'notes' | 'professional' | 'time'> & { shift_name: string }
-): Promise<{ data: Appointment | null; error: Error | null; queuePosition?: number }> => {
-  // Get current queue position
-  const { count } = await supabase
-    .from('appointments')
-    .select('*', { count: 'exact', head: true })
-    .eq('professional_id', appointment.professional_id)
-    .eq('date', appointment.date)
-    .eq('shift_name', appointment.shift_name)
-    .neq('status', 'cancelled');
-
-  const queuePosition = (count || 0) + 1;
-
+): Promise<{ data: Appointment | null; error: Error | null }> => {
   const { data, error } = await supabase
     .from('appointments')
     .insert({
       ...appointment,
       time: '00:00', // Placeholder for arrival order mode
-      status: 'confirmed',
-      queue_position: queuePosition,
+      status: 'scheduled', // Scheduled but not arrived yet
+      queue_position: null, // Position assigned when patient arrives
     })
     .select()
     .single();
 
   if (error) {
-    console.error('Error creating appointment with queue:', error);
+    console.error('Error creating appointment:', error);
     return { data: null, error };
   }
 
-  return { data, error: null, queuePosition };
+  return { data, error: null };
+};
+
+// Mark patient as arrived and assign queue position
+export const markPatientArrived = async (
+  appointmentId: string
+): Promise<{ data: Appointment | null; error: Error | null; queuePosition?: number }> => {
+  // First get the appointment details
+  const { data: appointment, error: fetchError } = await supabase
+    .from('appointments')
+    .select('*')
+    .eq('id', appointmentId)
+    .single();
+
+  if (fetchError || !appointment) {
+    console.error('Error fetching appointment:', fetchError);
+    return { data: null, error: fetchError };
+  }
+
+  // Get current max queue position for this shift
+  const { data: maxPositionData } = await supabase
+    .from('appointments')
+    .select('queue_position')
+    .eq('professional_id', appointment.professional_id)
+    .eq('date', appointment.date)
+    .eq('shift_name', appointment.shift_name)
+    .not('queue_position', 'is', null)
+    .order('queue_position', { ascending: false })
+    .limit(1);
+
+  const maxPosition = maxPositionData?.[0]?.queue_position || 0;
+  const newPosition = maxPosition + 1;
+
+  // Update appointment with queue position and status
+  const { data, error } = await supabase
+    .from('appointments')
+    .update({
+      queue_position: newPosition,
+      status: 'confirmed', // Now confirmed/arrived
+    })
+    .eq('id', appointmentId)
+    .select()
+    .single();
+
+  if (error) {
+    console.error('Error marking patient arrived:', error);
+    return { data: null, error };
+  }
+
+  return { data, error: null, queuePosition: newPosition };
 };
 
 // Fetch queue for a specific date and shift
