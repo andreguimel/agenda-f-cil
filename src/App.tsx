@@ -11,6 +11,7 @@ import Dashboard from "./pages/Dashboard";
 import ProfessionalsManagement from "./pages/ProfessionalsManagement";
 import BlockedTimesManagement from "./pages/BlockedTimesManagement";
 import ShiftsManagement from "./pages/ShiftsManagement";
+import DailyQueueManagement from "./pages/DailyQueueManagement";
 import AuthPage from "./pages/AuthPage";
 import NotFound from "./pages/NotFound";
 import DashboardLayout from "./components/DashboardLayout";
@@ -35,6 +36,7 @@ const App = () => (
               <Route index element={<Dashboard />} />
               <Route path="profissionais" element={<ProfessionalsManagement />} />
               <Route path="turnos" element={<ShiftsManagement />} />
+              <Route path="fila" element={<DailyQueueManagement />} />
               <Route path="horarios" element={<BlockedTimesManagement />} />
             </Route>
             
