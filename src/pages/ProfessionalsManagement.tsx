@@ -58,7 +58,7 @@ interface ProfessionalFormData {
   has_lunch_break: boolean;
   lunch_start_time: string;
   lunch_end_time: string;
-  max_advance_days: number;
+  max_advance_days: number | null;
 }
 
 const ProfessionalsManagement = () => {
@@ -80,7 +80,7 @@ const ProfessionalsManagement = () => {
     has_lunch_break: false,
     lunch_start_time: '12:00',
     lunch_end_time: '13:00',
-    max_advance_days: 365,
+    max_advance_days: null,
   });
   const [submitting, setSubmitting] = useState(false);
 
@@ -121,7 +121,7 @@ const ProfessionalsManagement = () => {
       has_lunch_break: false,
       lunch_start_time: '12:00',
       lunch_end_time: '13:00',
-      max_advance_days: 365,
+      max_advance_days: null,
     });
     setEditingProfessional(null);
   };
@@ -139,7 +139,7 @@ const ProfessionalsManagement = () => {
         has_lunch_break: professional.has_lunch_break || false,
         lunch_start_time: professional.lunch_start_time || '12:00',
         lunch_end_time: professional.lunch_end_time || '13:00',
-        max_advance_days: professional.max_advance_days || 365,
+        max_advance_days: professional.max_advance_days ?? null,
       });
     } else {
       resetForm();
@@ -409,19 +409,34 @@ const ProfessionalsManagement = () => {
                   )}
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="max_advance_days">Limite de agendamento futuro (dias)</Label>
-                  <Input
-                    id="max_advance_days"
-                    type="number"
-                    min={7}
-                    max={730}
-                    value={formData.max_advance_days}
-                    onChange={(e) => setFormData(prev => ({ ...prev, max_advance_days: parseInt(e.target.value) || 365 }))}
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Pacientes poderão agendar até <span className="font-medium text-foreground">{format(addDays(new Date(), formData.max_advance_days), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}</span>
-                  </p>
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <Checkbox
+                      id="has_advance_limit"
+                      checked={formData.max_advance_days !== null}
+                      onCheckedChange={(checked) => setFormData(prev => ({ 
+                        ...prev, 
+                        max_advance_days: checked ? 365 : null 
+                      }))}
+                    />
+                    <Label htmlFor="has_advance_limit" className="cursor-pointer">Limitar agendamento futuro</Label>
+                  </div>
+                  {formData.max_advance_days !== null && (
+                    <div className="pl-6 space-y-2">
+                      <Label htmlFor="max_advance_days">Quantidade de dias</Label>
+                      <Input
+                        id="max_advance_days"
+                        type="number"
+                        min={7}
+                        max={730}
+                        value={formData.max_advance_days}
+                        onChange={(e) => setFormData(prev => ({ ...prev, max_advance_days: parseInt(e.target.value) || 365 }))}
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Pacientes poderão agendar até <span className="font-medium text-foreground">{format(addDays(new Date(), formData.max_advance_days), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}</span>
+                      </p>
+                    </div>
+                  )}
                 </div>
                 <DialogFooter>
                   <Button type="button" variant="outline" onClick={handleCloseDialog}>
