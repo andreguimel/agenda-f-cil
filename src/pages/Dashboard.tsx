@@ -19,7 +19,8 @@ import {
   X,
   Home,
   LogOut,
-  Loader2
+  Loader2,
+  Settings
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -33,6 +34,13 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
+import {
   fetchAppointmentsByClinic,
   fetchProfessionalsByClinic,
   getUserProfile,
@@ -42,6 +50,7 @@ import {
   Professional,
   Clinic
 } from '@/services/schedulingService';
+import { GoogleCalendarConnect } from '@/components/GoogleCalendarConnect';
 
 const DEMO_CLINIC_ID = '550e8400-e29b-41d4-a716-446655440000';
 
@@ -203,6 +212,27 @@ const Dashboard = () => {
               <SidebarItem icon={<CalendarDays className="w-5 h-5" />} label="Agendamentos" active />
               <SidebarItem icon={<Users className="w-5 h-5" />} label="Profissionais" />
               <SidebarItem icon={<Clock className="w-5 h-5" />} label="Horários" />
+            </div>
+            
+            {/* Google Calendar Integration */}
+            <div className="mt-6">
+              <p className="text-xs text-muted-foreground mb-2 px-3">Integrações</p>
+              <Sheet>
+                <SheetTrigger asChild>
+                  <button className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all text-left text-muted-foreground hover:bg-secondary hover:text-foreground">
+                    <Settings className="w-5 h-5" />
+                    <span className="text-sm">Configurações</span>
+                  </button>
+                </SheetTrigger>
+                <SheetContent>
+                  <SheetHeader>
+                    <SheetTitle>Configurações</SheetTitle>
+                  </SheetHeader>
+                  <div className="mt-6 space-y-4">
+                    <GoogleCalendarConnect clinicId={DEMO_CLINIC_ID} />
+                  </div>
+                </SheetContent>
+              </Sheet>
             </div>
           </nav>
 

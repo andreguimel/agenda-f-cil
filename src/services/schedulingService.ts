@@ -207,7 +207,67 @@ export const createAppointment = async (
     return { data: null, error };
   }
 
+  // Sync with Google Calendar
+  if (data) {
+    syncAppointmentToGoogleCalendar(data);
+  }
+
   return { data, error: null };
+};
+
+// Sync appointment to Google Calendar
+export const syncAppointmentToGoogleCalendar = async (appointment: Appointment) => {
+  try {
+    const response = await fetch(
+      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/google-calendar-sync`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'create-event',
+          clinicId: appointment.clinic_id,
+          appointment,
+        }),
+      }
+    );
+
+    if (!response.ok) {
+      console.log('Google Calendar sync skipped (not connected)');
+    }
+  } catch (error) {
+    console.error('Error syncing to Google Calendar:', error);
+  }
+};
+
+// Get busy times from Google Calendar
+export const getGoogleCalendarBusyTimes = async (
+  clinicId: string,
+  date: string
+): Promise<{ start: string; end: string }[]> => {
+  try {
+    const response = await fetch(
+      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/google-calendar-sync`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'get-busy-times',
+          clinicId,
+          date,
+        }),
+      }
+    );
+
+    if (!response.ok) {
+      return [];
+    }
+
+    const data = await response.json();
+    return data.busyTimes || [];
+  } catch (error) {
+    console.error('Error fetching Google Calendar busy times:', error);
+    return [];
+  }
 };
 
 // Update appointment status
