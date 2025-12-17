@@ -20,7 +20,8 @@ import {
   Home,
   LogOut,
   Loader2,
-  Settings
+  Settings,
+  Pencil
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -43,9 +44,11 @@ import {
 import {
   fetchAppointmentsByClinic,
   fetchProfessionalsByClinic,
+  fetchClinicById,
   getUserProfile,
   updateAppointmentStatus,
   linkProfileToClinic,
+  updateClinicSlug,
   Appointment,
   Professional,
   Clinic
@@ -68,6 +71,9 @@ const Dashboard = () => {
   const [selectedProfessional, setSelectedProfessional] = useState<string>('all');
   const [linkCopied, setLinkCopied] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [editingSlug, setEditingSlug] = useState(false);
+  const [newSlug, setNewSlug] = useState('');
+  const [savingSlug, setSavingSlug] = useState(false);
 
   // Redirect to auth if not logged in
   useEffect(() => {
@@ -95,13 +101,18 @@ const Dashboard = () => {
       }
       
       // Fetch clinic data
-      const [appointmentsData, professionalsData] = await Promise.all([
+      const [appointmentsData, professionalsData, clinicData] = await Promise.all([
         fetchAppointmentsByClinic(clinicId),
         fetchProfessionalsByClinic(clinicId),
+        fetchClinicById(clinicId),
       ]);
       
       setAppointments(appointmentsData);
       setProfessionals(professionalsData);
+      if (clinicData) {
+        setClinic(clinicData);
+        setNewSlug(clinicData.slug);
+      }
       setLoading(false);
     };
 
@@ -128,13 +139,49 @@ const Dashboard = () => {
   });
 
   const handleCopyLink = () => {
-    navigator.clipboard.writeText(`${window.location.origin}/agendar/clinica-demo`);
+    const slug = clinic?.slug || 'clinica-demo';
+    navigator.clipboard.writeText(`${window.location.origin}/agendar/${slug}`);
     setLinkCopied(true);
     toast({
       title: 'Link copiado!',
       description: 'Compartilhe com seus pacientes',
     });
     setTimeout(() => setLinkCopied(false), 2000);
+  };
+
+  const handleSaveSlug = async () => {
+    if (!clinic || !newSlug.trim()) return;
+    
+    // Validate slug format
+    const slugRegex = /^[a-z0-9-]+$/;
+    if (!slugRegex.test(newSlug)) {
+      toast({
+        title: 'Link inválido',
+        description: 'Use apenas letras minúsculas, números e hífens',
+        variant: 'destructive',
+      });
+      return;
+    }
+    
+    setSavingSlug(true);
+    const { error } = await updateClinicSlug(clinic.id, newSlug);
+    setSavingSlug(false);
+    
+    if (error) {
+      toast({
+        title: 'Erro ao salvar',
+        description: error.message,
+        variant: 'destructive',
+      });
+      return;
+    }
+    
+    setClinic({ ...clinic, slug: newSlug });
+    setEditingSlug(false);
+    toast({
+      title: 'Link atualizado!',
+      description: 'Seu novo link público está ativo',
+    });
   };
 
   const handleCancelAppointment = async (id: string) => {
@@ -232,8 +279,35 @@ const Dashboard = () => {
                   <SheetHeader>
                     <SheetTitle>Configurações</SheetTitle>
                   </SheetHeader>
-                  <div className="mt-6 space-y-4">
-                    <GoogleCalendarConnect clinicId={DEMO_CLINIC_ID} />
+                  <div className="mt-6 space-y-6">
+                    {/* Edit Slug */}
+                    <div className="space-y-3">
+                      <label className="text-sm font-medium">Link Público</label>
+                      <div className="flex gap-2">
+                        <div className="flex-1 flex items-center gap-1 bg-secondary rounded-lg px-3">
+                          <span className="text-sm text-muted-foreground">/agendar/</span>
+                          <Input
+                            value={newSlug}
+                            onChange={(e) => setNewSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))}
+                            className="border-0 bg-transparent px-0 h-9 text-sm focus-visible:ring-0"
+                            placeholder="seu-link"
+                          />
+                        </div>
+                        <Button 
+                          onClick={handleSaveSlug}
+                          disabled={savingSlug || newSlug === clinic?.slug}
+                          size="sm"
+                        >
+                          {savingSlug ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Salvar'}
+                        </Button>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Use apenas letras minúsculas, números e hífens
+                      </p>
+                    </div>
+                    
+                    {/* Google Calendar */}
+                    <GoogleCalendarConnect clinicId={clinic?.id || DEMO_CLINIC_ID} />
                   </div>
                 </SheetContent>
               </Sheet>
@@ -242,12 +316,51 @@ const Dashboard = () => {
 
           {/* Share Link */}
           <div className="p-4 border-t border-border">
-            <p className="text-xs text-muted-foreground mb-2">Link público</p>
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-xs text-muted-foreground">Link público</p>
+              <Sheet>
+                <SheetTrigger asChild>
+                  <button className="text-xs text-primary hover:underline flex items-center gap-1">
+                    <Pencil className="w-3 h-3" />
+                    Editar
+                  </button>
+                </SheetTrigger>
+                <SheetContent>
+                  <SheetHeader>
+                    <SheetTitle>Editar Link Público</SheetTitle>
+                  </SheetHeader>
+                  <div className="mt-6 space-y-3">
+                    <label className="text-sm font-medium">Seu link de agendamento</label>
+                    <div className="flex gap-2">
+                      <div className="flex-1 flex items-center gap-1 bg-secondary rounded-lg px-3">
+                        <span className="text-sm text-muted-foreground">/agendar/</span>
+                        <Input
+                          value={newSlug}
+                          onChange={(e) => setNewSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))}
+                          className="border-0 bg-transparent px-0 h-9 text-sm focus-visible:ring-0"
+                          placeholder="seu-link"
+                        />
+                      </div>
+                      <Button 
+                        onClick={handleSaveSlug}
+                        disabled={savingSlug || newSlug === clinic?.slug}
+                        size="sm"
+                      >
+                        {savingSlug ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Salvar'}
+                      </Button>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Use apenas letras minúsculas, números e hífens
+                    </p>
+                  </div>
+                </SheetContent>
+              </Sheet>
+            </div>
             <div className="bg-secondary rounded-lg p-3">
               <div className="flex items-center gap-2 mb-2">
                 <LinkIcon className="w-4 h-4 text-muted-foreground flex-shrink-0" />
                 <span className="text-xs text-muted-foreground truncate">
-                  /agendar/clinica-demo
+                  /agendar/{clinic?.slug || 'clinica-demo'}
                 </span>
               </div>
               <Button 
@@ -310,7 +423,7 @@ const Dashboard = () => {
               </div>
             </div>
             
-            <Link to="/agendar/clinica-demo">
+            <Link to={`/agendar/${clinic?.slug || 'clinica-demo'}`}>
               <Button variant="default" size="sm">
                 <Calendar className="w-4 h-4 mr-2" />
                 <span className="hidden sm:inline">Ver Página Pública</span>
