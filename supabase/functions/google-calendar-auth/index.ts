@@ -54,12 +54,18 @@ serve(async (req) => {
 
       if (error) {
         console.error('OAuth error:', error);
+        const { redirectUri } = state ? JSON.parse(atob(state)) : { redirectUri: '' };
         return new Response(`
           <html>
             <body>
+              <p>Erro na autenticação. Redirecionando...</p>
               <script>
-                window.opener.postMessage({ type: 'google-calendar-error', error: '${error}' }, '*');
-                window.close();
+                if (window.opener) {
+                  window.opener.postMessage({ type: 'google-calendar-error', error: '${error}' }, '*');
+                  window.close();
+                } else {
+                  window.location.href = '${redirectUri}/painel?google_calendar=error&message=${encodeURIComponent(error)}';
+                }
               </script>
             </body>
           </html>
@@ -129,12 +135,19 @@ serve(async (req) => {
         `, { headers: { 'Content-Type': 'text/html' } });
       }
 
+      // Success - try popup message first, then redirect
       return new Response(`
         <html>
           <body>
+            <p>Conectado com sucesso! Redirecionando...</p>
             <script>
-              window.opener.postMessage({ type: 'google-calendar-success' }, '*');
-              window.close();
+              if (window.opener) {
+                window.opener.postMessage({ type: 'google-calendar-success' }, '*');
+                window.close();
+              } else {
+                // Direct redirect case - redirect back to app
+                window.location.href = '${redirectUri}/painel?google_calendar=success';
+              }
             </script>
           </body>
         </html>

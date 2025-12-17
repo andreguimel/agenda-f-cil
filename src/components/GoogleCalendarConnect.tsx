@@ -42,7 +42,22 @@ export function GoogleCalendarConnect({ clinicId }: GoogleCalendarConnectProps) 
   useEffect(() => {
     checkConnectionStatus();
 
-    // Listen for OAuth callback messages
+    // Check for OAuth redirect result in URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const googleCalendarResult = urlParams.get('google_calendar');
+    
+    if (googleCalendarResult === 'success') {
+      toast.success('Google Calendar conectado com sucesso!');
+      setIsConnected(true);
+      // Clean up URL
+      window.history.replaceState({}, '', window.location.pathname);
+    } else if (googleCalendarResult === 'error') {
+      const message = urlParams.get('message') || 'Erro desconhecido';
+      toast.error(`Erro ao conectar: ${message}`);
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+
+    // Listen for OAuth callback messages from popup
     const handleMessage = (event: MessageEvent) => {
       if (event.data.type === 'google-calendar-success') {
         setIsConnected(true);
@@ -76,17 +91,25 @@ export function GoogleCalendarConnect({ clinicId }: GoogleCalendarConnectProps) 
       const data = await response.json();
       
       if (data.authUrl) {
-        // Open popup for OAuth
+        // Try to open popup first
         const width = 600;
         const height = 700;
         const left = window.screenX + (window.outerWidth - width) / 2;
         const top = window.screenY + (window.outerHeight - height) / 2;
         
-        window.open(
+        const popup = window.open(
           data.authUrl,
           'google-oauth',
-          `width=${width},height=${height},left=${left},top=${top}`
+          `width=${width},height=${height},left=${left},top=${top},popup=yes`
         );
+        
+        // If popup was blocked, redirect directly
+        if (!popup || popup.closed || typeof popup.closed === 'undefined') {
+          toast.info('Redirecionando para autenticação do Google...');
+          // Store state to handle return
+          sessionStorage.setItem('google-oauth-pending', clinicId);
+          window.location.href = data.authUrl;
+        }
       }
     } catch (error) {
       console.error('Error connecting:', error);
