@@ -19,6 +19,7 @@ export type Database = {
           clinic_id: string
           created_at: string
           date: string
+          google_event_id: string | null
           id: string
           notes: string | null
           patient_email: string
@@ -33,6 +34,7 @@ export type Database = {
           clinic_id: string
           created_at?: string
           date: string
+          google_event_id?: string | null
           id?: string
           notes?: string | null
           patient_email: string
@@ -47,6 +49,7 @@ export type Database = {
           clinic_id?: string
           created_at?: string
           date?: string
+          google_event_id?: string | null
           id?: string
           notes?: string | null
           patient_email?: string
@@ -144,6 +147,47 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      google_calendar_tokens: {
+        Row: {
+          access_token: string
+          calendar_id: string | null
+          clinic_id: string
+          created_at: string
+          id: string
+          refresh_token: string
+          token_expiry: string
+          updated_at: string
+        }
+        Insert: {
+          access_token: string
+          calendar_id?: string | null
+          clinic_id: string
+          created_at?: string
+          id?: string
+          refresh_token: string
+          token_expiry: string
+          updated_at?: string
+        }
+        Update: {
+          access_token?: string
+          calendar_id?: string | null
+          clinic_id?: string
+          created_at?: string
+          id?: string
+          refresh_token?: string
+          token_expiry?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "google_calendar_tokens_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: true
+            referencedRelation: "clinics"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       professionals: {
         Row: {
