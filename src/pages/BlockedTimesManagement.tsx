@@ -10,7 +10,8 @@ import {
   Loader2,
   Calendar,
   User,
-  X
+  X,
+  RefreshCw
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -59,6 +60,7 @@ import {
   deleteBlockedTime,
   getUserProfile,
   linkProfileToClinic,
+  getGoogleCalendarBusyTimesForClinic,
   Professional,
   BlockedTime
 } from '@/services/schedulingService';
@@ -92,6 +94,11 @@ const BlockedTimesManagement = () => {
   const [clinicId, setClinicId] = useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingBlockedTime, setEditingBlockedTime] = useState<BlockedTime | null>(null);
+  
+  // Google Calendar busy times state
+  const [googleBusyTimes, setGoogleBusyTimes] = useState<{ professionalId: string; professionalName: string; busyTimes: { start: string; end: string }[] }[]>([]);
+  const [googleCalendarDate, setGoogleCalendarDate] = useState<Date>(new Date());
+  const [loadingGoogleBusy, setLoadingGoogleBusy] = useState(false);
   
   // Form data for creating new blocked times (supports multiple)
   const [formData, setFormData] = useState<BlockedTimeFormData>({
@@ -144,6 +151,22 @@ const BlockedTimesManagement = () => {
       loadData();
     }
   }, [user]);
+
+  const loadGoogleCalendarBusyTimes = async () => {
+    if (!clinicId || professionals.length === 0) return;
+    
+    setLoadingGoogleBusy(true);
+    const dateStr = format(googleCalendarDate, 'yyyy-MM-dd');
+    const busyTimes = await getGoogleCalendarBusyTimesForClinic(clinicId, dateStr, professionals);
+    setGoogleBusyTimes(busyTimes);
+    setLoadingGoogleBusy(false);
+  };
+
+  useEffect(() => {
+    if (clinicId && professionals.length > 0) {
+      loadGoogleCalendarBusyTimes();
+    }
+  }, [clinicId, professionals, googleCalendarDate]);
 
   const resetForm = () => {
     setFormData({
@@ -671,99 +694,200 @@ const BlockedTimesManagement = () => {
         )}
       </header>
 
-      <main className="p-4 lg:p-6">
-        {professionals.length === 0 ? (
-          <div className="text-center py-12">
-            <User className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-foreground mb-2">Nenhum profissional cadastrado</h3>
-            <p className="text-muted-foreground mb-4">Adicione profissionais primeiro para gerenciar bloqueios</p>
-            <Button onClick={() => navigate('/painel/profissionais')}>
-              <Plus className="w-4 h-4 mr-2" />
-              Ir para Profissionais
-            </Button>
-          </div>
-        ) : filteredBlockedTimes.length === 0 ? (
-          <div className="text-center py-12">
-            <Clock className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-foreground mb-2">Nenhum bloqueio</h3>
-            <p className="text-muted-foreground mb-4">Adicione bloqueios para marcar horários indisponíveis</p>
-            <Button onClick={() => handleOpenDialog()}>
-              <Plus className="w-4 h-4 mr-2" />
-              Adicionar Bloqueio
-            </Button>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {filteredBlockedTimes.map((blockedTime) => {
-              const professional = professionals.find(p => p.id === blockedTime.professional_id);
-              return (
-                <div 
-                  key={blockedTime.id} 
-                  className="bg-card rounded-xl border border-border p-4 hover:shadow-md transition-all"
+      <main className="p-4 lg:p-6 space-y-8">
+        {/* Google Calendar Busy Times Section */}
+        {professionals.length > 0 && (
+          <div className="space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div>
+                <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
+                  <Calendar className="w-5 h-5 text-primary" />
+                  Eventos do Google Calendar
+                </h2>
+                <p className="text-sm text-muted-foreground">
+                  Horários bloqueados automaticamente pelo Google Calendar
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className="w-full sm:w-auto justify-start">
+                      <Calendar className="mr-2 h-4 w-4" />
+                      {format(googleCalendarDate, "dd/MM/yyyy", { locale: ptBR })}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="end">
+                    <CalendarComponent
+                      mode="single"
+                      selected={googleCalendarDate}
+                      onSelect={(date) => date && setGoogleCalendarDate(date)}
+                      initialFocus
+                      className={cn("p-3 pointer-events-auto")}
+                    />
+                  </PopoverContent>
+                </Popover>
+                <Button 
+                  variant="outline" 
+                  size="icon"
+                  onClick={loadGoogleCalendarBusyTimes}
+                  disabled={loadingGoogleBusy}
                 >
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-start gap-4">
-                      <div className="w-12 h-12 rounded-full bg-destructive/10 flex items-center justify-center flex-shrink-0">
-                        <Clock className="w-5 h-5 text-destructive" />
+                  <RefreshCw className={cn("w-4 h-4", loadingGoogleBusy && "animate-spin")} />
+                </Button>
+              </div>
+            </div>
+
+            {loadingGoogleBusy ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="w-6 h-6 text-primary animate-spin" />
+              </div>
+            ) : googleBusyTimes.length === 0 ? (
+              <div className="bg-muted/30 rounded-lg p-6 text-center">
+                <Calendar className="w-10 h-10 text-muted-foreground mx-auto mb-2" />
+                <p className="text-sm text-muted-foreground">
+                  Nenhum evento no Google Calendar para {format(googleCalendarDate, "dd/MM/yyyy", { locale: ptBR })}
+                </p>
+              </div>
+            ) : (
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                {googleBusyTimes.map((item) => (
+                  <div key={item.professionalId} className="bg-card rounded-xl border border-border p-4">
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                        <Calendar className="w-5 h-5 text-primary" />
                       </div>
                       <div>
-                        <h3 className="font-semibold text-foreground">
-                          {format(parseISO(blockedTime.date), "d 'de' MMMM 'de' yyyy", { locale: ptBR })}
-                        </h3>
-                        <p className="text-sm text-muted-foreground">{professional?.name || 'Profissional'}</p>
-                        <div className="flex items-center gap-2 mt-2 text-sm text-muted-foreground">
-                          <span className="flex items-center gap-1">
-                            <Clock className="w-4 h-4" />
-                            {blockedTime.start_time.substring(0, 5)} - {blockedTime.end_time.substring(0, 5)}
-                          </span>
-                        </div>
-                        {blockedTime.reason && (
-                          <p className="text-sm text-muted-foreground mt-1">
-                            Motivo: {blockedTime.reason}
-                          </p>
-                        )}
+                        <h4 className="font-medium text-foreground">{item.professionalName}</h4>
+                        <p className="text-xs text-muted-foreground">
+                          {item.busyTimes.length} evento{item.busyTimes.length > 1 ? 's' : ''}
+                        </p>
                       </div>
                     </div>
-
-                    <div className="flex gap-1">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleOpenDialog(blockedTime)}
-                      >
-                        <Pencil className="w-4 h-4" />
-                      </Button>
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive">
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>Remover bloqueio?</AlertDialogTitle>
-                            <AlertDialogDescription>
-                              Esta ação irá liberar o horário para agendamentos.
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                            <AlertDialogAction 
-                              onClick={() => handleDelete(blockedTime)}
-                              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                            >
-                              Remover
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
+                    <div className="space-y-2">
+                      {item.busyTimes.map((bt, idx) => (
+                        <div 
+                          key={idx} 
+                          className="flex items-center gap-2 text-sm bg-muted/50 rounded px-3 py-2"
+                        >
+                          <Clock className="w-3.5 h-3.5 text-muted-foreground" />
+                          <span>{bt.start} - {bt.end}</span>
+                        </div>
+                      ))}
                     </div>
                   </div>
-                </div>
-              );
-            })}
+                ))}
+              </div>
+            )}
           </div>
         )}
+
+        {/* Manual Blocked Times Section */}
+        <div className="space-y-4">
+          {professionals.length > 0 && (
+            <div>
+              <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
+                <Clock className="w-5 h-5 text-destructive" />
+                Bloqueios Manuais
+              </h2>
+              <p className="text-sm text-muted-foreground">
+                Horários bloqueados manualmente no sistema
+              </p>
+            </div>
+          )}
+
+          {professionals.length === 0 ? (
+            <div className="text-center py-12">
+              <User className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-foreground mb-2">Nenhum profissional cadastrado</h3>
+              <p className="text-muted-foreground mb-4">Adicione profissionais primeiro para gerenciar bloqueios</p>
+              <Button onClick={() => navigate('/painel/profissionais')}>
+                <Plus className="w-4 h-4 mr-2" />
+                Ir para Profissionais
+              </Button>
+            </div>
+          ) : filteredBlockedTimes.length === 0 ? (
+            <div className="text-center py-12">
+              <Clock className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-foreground mb-2">Nenhum bloqueio manual</h3>
+              <p className="text-muted-foreground mb-4">Adicione bloqueios para marcar horários indisponíveis</p>
+              <Button onClick={() => handleOpenDialog()}>
+                <Plus className="w-4 h-4 mr-2" />
+                Adicionar Bloqueio
+              </Button>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {filteredBlockedTimes.map((blockedTime) => {
+                const professional = professionals.find(p => p.id === blockedTime.professional_id);
+                return (
+                  <div 
+                    key={blockedTime.id} 
+                    className="bg-card rounded-xl border border-border p-4 hover:shadow-md transition-all"
+                  >
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-start gap-4">
+                        <div className="w-12 h-12 rounded-full bg-destructive/10 flex items-center justify-center flex-shrink-0">
+                          <Clock className="w-5 h-5 text-destructive" />
+                        </div>
+                        <div>
+                          <h3 className="font-semibold text-foreground">
+                            {format(parseISO(blockedTime.date), "d 'de' MMMM 'de' yyyy", { locale: ptBR })}
+                          </h3>
+                          <p className="text-sm text-muted-foreground">{professional?.name || 'Profissional'}</p>
+                          <div className="flex items-center gap-2 mt-2 text-sm text-muted-foreground">
+                            <span className="flex items-center gap-1">
+                              <Clock className="w-4 h-4" />
+                              {blockedTime.start_time.substring(0, 5)} - {blockedTime.end_time.substring(0, 5)}
+                            </span>
+                          </div>
+                          {blockedTime.reason && (
+                            <p className="text-sm text-muted-foreground mt-1">
+                              Motivo: {blockedTime.reason}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="flex gap-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleOpenDialog(blockedTime)}
+                        >
+                          <Pencil className="w-4 h-4" />
+                        </Button>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive">
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Remover bloqueio?</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Esta ação irá liberar o horário para agendamentos.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                              <AlertDialogAction 
+                                onClick={() => handleDelete(blockedTime)}
+                                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                              >
+                                Remover
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
       </main>
     </div>
   );

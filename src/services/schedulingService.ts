@@ -552,6 +552,30 @@ export const getGoogleCalendarBusyTimes = async (
   }
 };
 
+// Get Google Calendar busy times for all professionals in a clinic
+export const getGoogleCalendarBusyTimesForClinic = async (
+  clinicId: string,
+  date: string,
+  professionals: Professional[]
+): Promise<{ professionalId: string; professionalName: string; busyTimes: { start: string; end: string; summary?: string }[] }[]> => {
+  try {
+    const results = await Promise.all(
+      professionals.map(async (prof) => {
+        const busyTimes = await getGoogleCalendarBusyTimes(clinicId, date, prof.id);
+        return {
+          professionalId: prof.id,
+          professionalName: prof.name,
+          busyTimes,
+        };
+      })
+    );
+    return results.filter(r => r.busyTimes.length > 0);
+  } catch (error) {
+    console.error('Error fetching Google Calendar busy times for clinic:', error);
+    return [];
+  }
+};
+
 // Delete event from Google Calendar
 export const deleteGoogleCalendarEvent = async (appointment: {
   clinic_id: string;
