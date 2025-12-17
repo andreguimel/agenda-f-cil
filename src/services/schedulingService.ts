@@ -941,6 +941,11 @@ export const createAppointmentWithQueue = async (
     return { data: null, error };
   }
 
+  // Sync with Google Calendar
+  if (data) {
+    syncAppointmentToGoogleCalendar(data);
+  }
+
   return { data, error: null };
 };
 
