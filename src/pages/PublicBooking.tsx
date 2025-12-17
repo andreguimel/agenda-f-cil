@@ -150,8 +150,8 @@ const PublicBooking = () => {
     setIsSubmitting(true);
     
     if (isArrivalOrderMode && selectedShift) {
-      // Arrival order mode
-      const { error, queuePosition: position } = await createAppointmentWithQueue({
+      // Arrival order mode - no queue position yet, assigned when patient arrives
+      const { error } = await createAppointmentWithQueue({
         clinic_id: clinic.id,
         professional_id: selectedProfessional.id,
         date: format(selectedDate, 'yyyy-MM-dd'),
@@ -172,7 +172,7 @@ const PublicBooking = () => {
         return;
       }
       
-      setQueuePosition(position || null);
+      setQueuePosition(null); // Position assigned when patient arrives at clinic
       setStep('confirmation');
       toast({
         title: 'Agendamento confirmado!',
@@ -648,10 +648,12 @@ const PublicBooking = () => {
               <h2 className="text-2xl font-bold text-foreground mb-2">Agendamento Confirmado!</h2>
               <p className="text-muted-foreground mb-8">Enviamos os detalhes para seu e-mail</p>
 
-              {isArrivalOrderMode && queuePosition && selectedProfessional?.show_queue_position && (
+              {isArrivalOrderMode && (
                 <div className="bg-primary/10 rounded-xl p-6 mb-6">
-                  <p className="text-sm text-muted-foreground mb-2">Sua posição na fila</p>
-                  <p className="text-4xl font-bold text-primary">{queuePosition}º</p>
+                  <p className="text-sm text-muted-foreground mb-2">Atendimento por ordem de chegada</p>
+                  <p className="text-base text-foreground">
+                    Sua posição na fila será definida quando você chegar ao consultório
+                  </p>
                 </div>
               )}
 
