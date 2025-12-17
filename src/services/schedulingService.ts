@@ -334,6 +334,15 @@ export const generateTimeSlots = async (
 ): Promise<TimeSlot[]> => {
   const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
   
+  // Fetch professional data to get duration
+  const { data: professional } = await supabase
+    .from('professionals')
+    .select('duration')
+    .eq('id', professionalId)
+    .single();
+
+  const duration = professional?.duration || 30;
+  
   // Fetch existing appointments, blocked times, and Google Calendar busy times
   const [appointments, blockedTimes, googleBusyTimes] = await Promise.all([
     fetchAppointmentsByProfessionalAndDate(professionalId, dateStr),
@@ -341,44 +350,57 @@ export const generateTimeSlots = async (
     clinicId ? getGoogleCalendarBusyTimes(clinicId, dateStr, professionalId) : Promise.resolve([]),
   ]);
 
-  const bookedTimes = new Set(appointments.map(apt => apt.time));
+  // Create a map of booked time ranges (considering appointment duration)
+  const bookedRanges: { start: number; end: number }[] = appointments.map(apt => {
+    const [h, m] = apt.time.split(':').map(Number);
+    const startMinutes = h * 60 + m;
+    return { start: startMinutes, end: startMinutes + duration };
+  });
   
   const slots: TimeSlot[] = [];
   const startHour = 8;
   const endHour = 18;
-  const interval = 30;
   const now = new Date();
   const isToday = date.toDateString() === now.toDateString();
 
-  for (let hour = startHour; hour < endHour; hour++) {
-    for (let minute = 0; minute < 60; minute += interval) {
-      const time = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
-      const timeWithSeconds = `${time}:00`;
-      
-      // Check if time is in the past (for today)
-      const isPast = isToday && (hour < now.getHours() || (hour === now.getHours() && minute <= now.getMinutes()));
-      
-      // Check if time is already booked
-      const isBooked = bookedTimes.has(time) || bookedTimes.has(timeWithSeconds);
-      
-      // Check if time is blocked in system
-      const isBlocked = blockedTimes.some(bt => {
-        const start = bt.start_time.substring(0, 5);
-        const end = bt.end_time.substring(0, 5);
-        return time >= start && time < end;
-      });
+  // Generate slots based on professional's duration
+  for (let minutes = startHour * 60; minutes + duration <= endHour * 60; minutes += duration) {
+    const hour = Math.floor(minutes / 60);
+    const minute = minutes % 60;
+    const time = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
+    const slotEnd = minutes + duration;
+    
+    // Check if time is in the past (for today)
+    const isPast = isToday && (hour < now.getHours() || (hour === now.getHours() && minute <= now.getMinutes()));
+    
+    // Check if this slot overlaps with any booked appointment
+    const isBooked = bookedRanges.some(range => 
+      (minutes < range.end && slotEnd > range.start)
+    );
+    
+    // Check if time is blocked in system
+    const isBlocked = blockedTimes.some(bt => {
+      const [sh, sm] = bt.start_time.split(':').map(Number);
+      const [eh, em] = bt.end_time.split(':').map(Number);
+      const blockStart = sh * 60 + sm;
+      const blockEnd = eh * 60 + em;
+      return (minutes < blockEnd && slotEnd > blockStart);
+    });
 
-      // Check if time is busy in Google Calendar
-      const isBusyInGoogle = googleBusyTimes.some(bt => {
-        return time >= bt.start && time < bt.end;
-      });
+    // Check if time is busy in Google Calendar
+    const isBusyInGoogle = googleBusyTimes.some(bt => {
+      const [sh, sm] = bt.start.split(':').map(Number);
+      const [eh, em] = bt.end.split(':').map(Number);
+      const busyStart = sh * 60 + sm;
+      const busyEnd = eh * 60 + em;
+      return (minutes < busyEnd && slotEnd > busyStart);
+    });
 
-      slots.push({
-        id: `${dateStr}-${time}-${professionalId}`,
-        time,
-        available: !isPast && !isBooked && !isBlocked && !isBusyInGoogle,
-      });
-    }
+    slots.push({
+      id: `${dateStr}-${time}-${professionalId}`,
+      time,
+      available: !isPast && !isBooked && !isBlocked && !isBusyInGoogle,
+    });
   }
 
   return slots;
