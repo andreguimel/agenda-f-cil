@@ -1006,6 +1006,47 @@ export const markPatientAttended = async (
   return { data, error: null };
 };
 
+// Undo patient arrived (back to scheduled)
+export const undoPatientArrived = async (
+  appointmentId: string
+): Promise<{ data: Appointment | null; error: Error | null }> => {
+  const { data, error } = await supabase
+    .from('appointments')
+    .update({ 
+      status: 'scheduled',
+      queue_position: null 
+    })
+    .eq('id', appointmentId)
+    .select()
+    .single();
+
+  if (error) {
+    console.error('Error undoing patient arrived:', error);
+    return { data: null, error };
+  }
+
+  return { data, error: null };
+};
+
+// Undo patient attended (back to in queue)
+export const undoPatientAttended = async (
+  appointmentId: string
+): Promise<{ data: Appointment | null; error: Error | null }> => {
+  const { data, error } = await supabase
+    .from('appointments')
+    .update({ status: 'confirmed' })
+    .eq('id', appointmentId)
+    .select()
+    .single();
+
+  if (error) {
+    console.error('Error undoing patient attended:', error);
+    return { data: null, error };
+  }
+
+  return { data, error: null };
+};
+
 // Fetch queue for a specific date and shift
 export const fetchQueueByDateAndShift = async (
   professionalId: string,
