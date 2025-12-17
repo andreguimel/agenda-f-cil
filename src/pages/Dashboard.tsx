@@ -322,8 +322,14 @@ const AppointmentCard = ({ appointment, onCancel, onMarkArrived, showDate }: App
   };
 
   const professionalName = appointment.professional?.name || 'Profissional';
-  const isArrivalOrder = appointment.shift_name && appointment.time === '00:00:00';
+  const isArrivalOrder = !!appointment.shift_name;
   const isWaitingArrival = isArrivalOrder && appointment.status === 'scheduled';
+
+  const SHIFT_LABELS: Record<string, string> = {
+    morning: 'Manhã',
+    afternoon: 'Tarde',
+    evening: 'Noite',
+  };
 
   return (
     <div className="bg-card rounded-xl border border-border p-4 hover:shadow-md transition-all">
@@ -346,7 +352,7 @@ const AppointmentCard = ({ appointment, onCancel, onMarkArrived, showDate }: App
                 <>
                   <span className="flex items-center gap-1">
                     <Clock className="w-4 h-4" />
-                    {appointment.shift_name}
+                    {SHIFT_LABELS[appointment.shift_name!] || appointment.shift_name}
                   </span>
                   {appointment.queue_position && (
                     <span className="flex items-center gap-1 text-primary font-medium">
