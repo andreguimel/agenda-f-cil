@@ -98,21 +98,33 @@ serve(async (req) => {
         .eq('id', clinicId)
         .single();
 
-      const startDateTime = new Date(`${appointment.date}T${appointment.time}`);
-      const endDateTime = new Date(startDateTime.getTime() + (professional?.duration || 30) * 60 * 1000);
+      // Format time properly - appointment.time might be "08:00" or "08:00:00"
+      const timeStr = appointment.time.substring(0, 5); // Get "HH:MM"
+      const duration = professional?.duration || 30;
+      
+      // Parse hours and minutes
+      const [hours, minutes] = timeStr.split(':').map(Number);
+      const endMinutes = hours * 60 + minutes + duration;
+      const endHours = Math.floor(endMinutes / 60);
+      const endMins = endMinutes % 60;
+      const endTimeStr = `${endHours.toString().padStart(2, '0')}:${endMins.toString().padStart(2, '0')}`;
 
+      // Use date and time directly without converting to ISO
+      // Google Calendar will interpret these as the specified timezone
       const event = {
         summary: `Consulta: ${appointment.patient_name}`,
         description: `Paciente: ${appointment.patient_name}\nTelefone: ${appointment.patient_phone}\nEmail: ${appointment.patient_email}\nProfissional: ${professional?.name}\n${appointment.notes ? `Observações: ${appointment.notes}` : ''}`,
         start: {
-          dateTime: startDateTime.toISOString(),
+          dateTime: `${appointment.date}T${timeStr}:00`,
           timeZone: 'America/Sao_Paulo',
         },
         end: {
-          dateTime: endDateTime.toISOString(),
+          dateTime: `${appointment.date}T${endTimeStr}:00`,
           timeZone: 'America/Sao_Paulo',
         },
       };
+
+      console.log('Creating event:', JSON.stringify(event, null, 2));
 
       const response = await fetch('https://www.googleapis.com/calendar/v3/calendars/primary/events', {
         method: 'POST',
