@@ -987,6 +987,25 @@ export const markPatientArrived = async (
   return { data, error: null, queuePosition: newPosition };
 };
 
+// Mark patient as attended (consultation finished)
+export const markPatientAttended = async (
+  appointmentId: string
+): Promise<{ data: Appointment | null; error: Error | null }> => {
+  const { data, error } = await supabase
+    .from('appointments')
+    .update({ status: 'completed' })
+    .eq('id', appointmentId)
+    .select()
+    .single();
+
+  if (error) {
+    console.error('Error marking patient attended:', error);
+    return { data: null, error };
+  }
+
+  return { data, error: null };
+};
+
 // Fetch queue for a specific date and shift
 export const fetchQueueByDateAndShift = async (
   professionalId: string,
