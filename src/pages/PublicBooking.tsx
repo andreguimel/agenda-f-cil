@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { format, addDays, isSameDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Calendar, ChevronLeft, ChevronRight, Clock, User, Mail, Phone, CheckCircle, ArrowLeft, Building2, Loader2 } from 'lucide-react';
+import { Calendar, ChevronLeft, ChevronRight, Clock, User, Mail, Phone, CheckCircle, ArrowLeft, Building2, Loader2, ListOrdered, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -12,7 +12,11 @@ import {
   fetchProfessionalsByClinic, 
   generateTimeSlots,
   createAppointment,
+  createAppointmentWithQueue,
+  fetchShiftsForDate,
+  getAvailableSlotsForShift,
   Professional,
+  ProfessionalShift,
   TimeSlot,
   Clinic
 } from '@/services/schedulingService';
@@ -24,6 +28,12 @@ interface BookingFormData {
 }
 
 type BookingStep = 'professional' | 'datetime' | 'form' | 'confirmation';
+
+const SHIFT_LABELS: Record<string, string> = {
+  morning: 'Manhã',
+  afternoon: 'Tarde',
+  evening: 'Noite',
+};
 
 const PublicBooking = () => {
   const { clinicSlug } = useParams();
@@ -37,13 +47,19 @@ const PublicBooking = () => {
   const [selectedProfessional, setSelectedProfessional] = useState<Professional | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [selectedSlot, setSelectedSlot] = useState<TimeSlot | null>(null);
+  const [selectedShift, setSelectedShift] = useState<ProfessionalShift | null>(null);
   const [timeSlots, setTimeSlots] = useState<TimeSlot[]>([]);
+  const [shifts, setShifts] = useState<ProfessionalShift[]>([]);
+  const [shiftAvailability, setShiftAvailability] = useState<Record<string, { available: number; total: number }>>({});
   const [loadingSlots, setLoadingSlots] = useState(false);
   const [formData, setFormData] = useState<BookingFormData>({ name: '', email: '', phone: '' });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [queuePosition, setQueuePosition] = useState<number | null>(null);
   
   const [dateOffset, setDateOffset] = useState(0);
   const visibleDates = Array.from({ length: 7 }, (_, i) => addDays(new Date(), dateOffset + i));
+
+  const isArrivalOrderMode = selectedProfessional?.scheduling_mode === 'arrival_order';
 
   // Fetch clinic and professionals on mount
   useEffect(() => {
@@ -65,29 +81,55 @@ const PublicBooking = () => {
     loadClinicData();
   }, [clinicSlug]);
 
-  // Fetch time slots when professional or date changes
+  // Fetch time slots or shifts when professional or date changes
   useEffect(() => {
-    const loadTimeSlots = async () => {
+    const loadAvailability = async () => {
       if (!selectedProfessional || !clinic) return;
       
       setLoadingSlots(true);
-      // Pass clinicId to check Google Calendar busy times
-      const slots = await generateTimeSlots(selectedDate, selectedProfessional.id, clinic.id);
-      setTimeSlots(slots);
+      
+      if (isArrivalOrderMode) {
+        // Load shifts for arrival order mode
+        const shiftsData = await fetchShiftsForDate(selectedProfessional.id, selectedDate);
+        setShifts(shiftsData);
+        
+        // Load availability for each shift
+        const dateStr = format(selectedDate, 'yyyy-MM-dd');
+        const availability: Record<string, { available: number; total: number }> = {};
+        for (const shift of shiftsData) {
+          const slots = await getAvailableSlotsForShift(selectedProfessional.id, dateStr, shift.shift_name);
+          availability[shift.shift_name] = slots;
+        }
+        setShiftAvailability(availability);
+      } else {
+        // Load time slots for regular mode
+        const slots = await generateTimeSlots(selectedDate, selectedProfessional.id, clinic.id);
+        setTimeSlots(slots);
+      }
+      
       setLoadingSlots(false);
     };
 
-    loadTimeSlots();
-  }, [selectedProfessional, selectedDate, clinic]);
+    loadAvailability();
+  }, [selectedProfessional, selectedDate, clinic, isArrivalOrderMode]);
 
   const handleSelectProfessional = (professional: Professional) => {
     setSelectedProfessional(professional);
+    setSelectedSlot(null);
+    setSelectedShift(null);
     setStep('datetime');
   };
 
   const handleSelectSlot = (slot: TimeSlot) => {
     if (!slot.available) return;
     setSelectedSlot(slot);
+    setStep('form');
+  };
+
+  const handleSelectShift = (shift: ProfessionalShift) => {
+    const availability = shiftAvailability[shift.shift_name];
+    if (!availability || availability.available === 0) return;
+    setSelectedShift(shift);
     setStep('form');
   };
 
@@ -103,36 +145,68 @@ const PublicBooking = () => {
       return;
     }
 
-    if (!clinic || !selectedProfessional || !selectedSlot) return;
+    if (!clinic || !selectedProfessional) return;
 
     setIsSubmitting(true);
     
-    const { error } = await createAppointment({
-      clinic_id: clinic.id,
-      professional_id: selectedProfessional.id,
-      date: format(selectedDate, 'yyyy-MM-dd'), // Use local date format instead of toISOString
-      time: selectedSlot.time,
-      patient_name: formData.name.trim(),
-      patient_email: formData.email.trim(),
-      patient_phone: formData.phone.trim(),
-    });
-    
-    setIsSubmitting(false);
-
-    if (error) {
-      toast({
-        title: 'Erro ao agendar',
-        description: 'Não foi possível confirmar o agendamento. Tente novamente.',
-        variant: 'destructive',
+    if (isArrivalOrderMode && selectedShift) {
+      // Arrival order mode
+      const { error, queuePosition: position } = await createAppointmentWithQueue({
+        clinic_id: clinic.id,
+        professional_id: selectedProfessional.id,
+        date: format(selectedDate, 'yyyy-MM-dd'),
+        shift_name: selectedShift.shift_name,
+        patient_name: formData.name.trim(),
+        patient_email: formData.email.trim(),
+        patient_phone: formData.phone.trim(),
       });
-      return;
+      
+      setIsSubmitting(false);
+
+      if (error) {
+        toast({
+          title: 'Erro ao agendar',
+          description: 'Não foi possível confirmar o agendamento. Tente novamente.',
+          variant: 'destructive',
+        });
+        return;
+      }
+      
+      setQueuePosition(position || null);
+      setStep('confirmation');
+      toast({
+        title: 'Agendamento confirmado!',
+        description: 'Você receberá um email com os detalhes.',
+      });
+    } else if (selectedSlot) {
+      // Regular time slots mode
+      const { error } = await createAppointment({
+        clinic_id: clinic.id,
+        professional_id: selectedProfessional.id,
+        date: format(selectedDate, 'yyyy-MM-dd'),
+        time: selectedSlot.time,
+        patient_name: formData.name.trim(),
+        patient_email: formData.email.trim(),
+        patient_phone: formData.phone.trim(),
+      });
+      
+      setIsSubmitting(false);
+
+      if (error) {
+        toast({
+          title: 'Erro ao agendar',
+          description: 'Não foi possível confirmar o agendamento. Tente novamente.',
+          variant: 'destructive',
+        });
+        return;
+      }
+      
+      setStep('confirmation');
+      toast({
+        title: 'Agendamento confirmado!',
+        description: 'Você receberá um email com os detalhes.',
+      });
     }
-    
-    setStep('confirmation');
-    toast({
-      title: 'Agendamento confirmado!',
-      description: 'Você receberá um email com os detalhes.',
-    });
   };
 
   const handleBack = () => {
@@ -144,6 +218,8 @@ const PublicBooking = () => {
     setStep('professional');
     setSelectedProfessional(null);
     setSelectedSlot(null);
+    setSelectedShift(null);
+    setQueuePosition(null);
     setFormData({ name: '', email: '', phone: '' });
     setDateOffset(0);
     setSelectedDate(new Date());
@@ -210,7 +286,7 @@ const PublicBooking = () => {
             <div className="w-8 md:w-16 h-px bg-border" />
             <StepIndicator 
               number={2} 
-              label="Data e Hora" 
+              label={isArrivalOrderMode ? "Data e Turno" : "Data e Hora"} 
               active={step === 'datetime'} 
               completed={step === 'form' || step === 'confirmation'} 
             />
@@ -262,10 +338,19 @@ const PublicBooking = () => {
                         <div className="flex-1">
                           <h3 className="font-semibold text-foreground">{professional.name}</h3>
                           <p className="text-sm text-muted-foreground">{professional.specialty}</p>
-                          <p className="text-xs text-muted-foreground mt-1">
-                            <Clock className="w-3 h-3 inline mr-1" />
-                            Consulta de {professional.duration} min
-                          </p>
+                          <div className="flex items-center gap-2 mt-1">
+                            {professional.scheduling_mode === 'arrival_order' ? (
+                              <span className="text-xs text-muted-foreground flex items-center gap-1">
+                                <ListOrdered className="w-3 h-3" />
+                                Ordem de chegada
+                              </span>
+                            ) : (
+                              <span className="text-xs text-muted-foreground flex items-center gap-1">
+                                <Clock className="w-3 h-3" />
+                                Consulta de {professional.duration} min
+                              </span>
+                            )}
+                          </div>
                         </div>
                         <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:text-primary transition-colors" />
                       </div>
@@ -276,7 +361,7 @@ const PublicBooking = () => {
             </div>
           )}
 
-          {/* Step 2: Select Date & Time */}
+          {/* Step 2: Select Date & Time/Shift */}
           {step === 'datetime' && (
             <div className="animate-fade-in">
               <button onClick={handleBack} className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-4 transition-colors">
@@ -352,14 +437,78 @@ const PublicBooking = () => {
                 </p>
               </div>
 
-              {/* Time Slots */}
+              {/* Time Slots or Shifts */}
               <div>
-                <h3 className="font-semibold text-foreground mb-4">Horários Disponíveis</h3>
+                <h3 className="font-semibold text-foreground mb-4">
+                  {isArrivalOrderMode ? 'Selecione o Turno' : 'Horários Disponíveis'}
+                </h3>
+                
                 {loadingSlots ? (
                   <div className="flex items-center justify-center py-8">
                     <Loader2 className="w-6 h-6 text-primary animate-spin" />
                   </div>
+                ) : isArrivalOrderMode ? (
+                  // Shifts for arrival order mode
+                  <div className="space-y-3">
+                    {shifts.length === 0 ? (
+                      <p className="text-center text-muted-foreground py-4">
+                        Nenhum turno disponível para esta data
+                      </p>
+                    ) : (
+                      shifts.map((shift) => {
+                        const availability = shiftAvailability[shift.shift_name];
+                        const isAvailable = availability && availability.available > 0;
+                        
+                        return (
+                          <button
+                            key={shift.id}
+                            onClick={() => handleSelectShift(shift)}
+                            disabled={!isAvailable}
+                            className={`w-full p-4 rounded-xl border transition-all text-left ${
+                              !isAvailable
+                                ? 'bg-muted border-border cursor-not-allowed opacity-60'
+                                : selectedShift?.id === shift.id
+                                ? 'bg-primary/10 border-primary shadow-glow'
+                                : 'bg-card border-border hover:border-primary hover:shadow-md'
+                            }`}
+                          >
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-3">
+                                <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                                  isAvailable ? 'bg-primary/10' : 'bg-muted'
+                                }`}>
+                                  <ListOrdered className={`w-5 h-5 ${isAvailable ? 'text-primary' : 'text-muted-foreground'}`} />
+                                </div>
+                                <div>
+                                  <h4 className="font-medium text-foreground">
+                                    {SHIFT_LABELS[shift.shift_name] || shift.shift_name}
+                                  </h4>
+                                  <p className="text-sm text-muted-foreground">
+                                    {shift.start_time.slice(0, 5)} - {shift.end_time.slice(0, 5)}
+                                  </p>
+                                </div>
+                              </div>
+                              <div className="text-right">
+                                {availability && (
+                                  <div className="flex items-center gap-1 text-sm">
+                                    <Users className="w-4 h-4 text-muted-foreground" />
+                                    <span className={isAvailable ? 'text-foreground' : 'text-muted-foreground'}>
+                                      {availability.available}/{availability.total}
+                                    </span>
+                                  </div>
+                                )}
+                                <p className="text-xs text-muted-foreground">
+                                  {isAvailable ? 'vagas' : 'lotado'}
+                                </p>
+                              </div>
+                            </div>
+                          </button>
+                        );
+                      })
+                    )}
+                  </div>
                 ) : (
+                  // Time slots for regular mode
                   <div className="grid grid-cols-4 sm:grid-cols-5 gap-2">
                     {timeSlots.map((slot) => (
                       <button
@@ -407,10 +556,17 @@ const PublicBooking = () => {
                     <Calendar className="w-4 h-4" />
                     {format(selectedDate, "d 'de' MMMM", { locale: ptBR })}
                   </span>
-                  <span className="flex items-center gap-1 text-muted-foreground">
-                    <Clock className="w-4 h-4" />
-                    {selectedSlot?.time}
-                  </span>
+                  {isArrivalOrderMode && selectedShift ? (
+                    <span className="flex items-center gap-1 text-muted-foreground">
+                      <ListOrdered className="w-4 h-4" />
+                      {SHIFT_LABELS[selectedShift.shift_name] || selectedShift.shift_name}
+                    </span>
+                  ) : (
+                    <span className="flex items-center gap-1 text-muted-foreground">
+                      <Clock className="w-4 h-4" />
+                      {selectedSlot?.time}
+                    </span>
+                  )}
                 </div>
               </div>
 
@@ -492,6 +648,13 @@ const PublicBooking = () => {
               <h2 className="text-2xl font-bold text-foreground mb-2">Agendamento Confirmado!</h2>
               <p className="text-muted-foreground mb-8">Enviamos os detalhes para seu e-mail</p>
 
+              {isArrivalOrderMode && queuePosition && selectedProfessional?.show_queue_position && (
+                <div className="bg-primary/10 rounded-xl p-6 mb-6">
+                  <p className="text-sm text-muted-foreground mb-2">Sua posição na fila</p>
+                  <p className="text-4xl font-bold text-primary">{queuePosition}º</p>
+                </div>
+              )}
+
               <div className="bg-card rounded-xl border border-border p-6 text-left mb-8">
                 <h3 className="font-semibold text-foreground mb-4">Detalhes da Consulta</h3>
                 <div className="space-y-3">
@@ -512,11 +675,26 @@ const PublicBooking = () => {
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
-                    <Clock className="w-5 h-5 text-muted-foreground" />
-                    <div>
-                      <p className="text-sm text-muted-foreground">Horário</p>
-                      <p className="font-medium text-foreground">{selectedSlot?.time}</p>
-                    </div>
+                    {isArrivalOrderMode ? (
+                      <>
+                        <ListOrdered className="w-5 h-5 text-muted-foreground" />
+                        <div>
+                          <p className="text-sm text-muted-foreground">Turno</p>
+                          <p className="font-medium text-foreground">
+                            {selectedShift && (SHIFT_LABELS[selectedShift.shift_name] || selectedShift.shift_name)}
+                            {selectedShift && ` (${selectedShift.start_time.slice(0, 5)} - ${selectedShift.end_time.slice(0, 5)})`}
+                          </p>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <Clock className="w-5 h-5 text-muted-foreground" />
+                        <div>
+                          <p className="text-sm text-muted-foreground">Horário</p>
+                          <p className="font-medium text-foreground">{selectedSlot?.time}</p>
+                        </div>
+                      </>
+                    )}
                   </div>
                 </div>
               </div>

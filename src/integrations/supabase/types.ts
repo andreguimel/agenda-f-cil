@@ -26,6 +26,8 @@ export type Database = {
           patient_name: string
           patient_phone: string
           professional_id: string
+          queue_position: number | null
+          shift_name: string | null
           status: string
           time: string
           updated_at: string
@@ -41,6 +43,8 @@ export type Database = {
           patient_name: string
           patient_phone: string
           professional_id: string
+          queue_position?: number | null
+          shift_name?: string | null
           status?: string
           time: string
           updated_at?: string
@@ -56,6 +60,8 @@ export type Database = {
           patient_name?: string
           patient_phone?: string
           professional_id?: string
+          queue_position?: number | null
+          shift_name?: string | null
           status?: string
           time?: string
           updated_at?: string
@@ -192,6 +198,53 @@ export type Database = {
           },
         ]
       }
+      professional_shifts: {
+        Row: {
+          created_at: string
+          day_of_week: number
+          end_time: string
+          id: string
+          is_active: boolean
+          max_slots: number
+          professional_id: string
+          shift_name: string
+          start_time: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          day_of_week: number
+          end_time: string
+          id?: string
+          is_active?: boolean
+          max_slots?: number
+          professional_id: string
+          shift_name: string
+          start_time: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          day_of_week?: number
+          end_time?: string
+          id?: string
+          is_active?: boolean
+          max_slots?: number
+          professional_id?: string
+          shift_name?: string
+          start_time?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "professional_shifts_professional_id_fkey"
+            columns: ["professional_id"]
+            isOneToOne: false
+            referencedRelation: "professionals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       professionals: {
         Row: {
           avatar_url: string | null
@@ -206,6 +259,8 @@ export type Database = {
           lunch_start_time: string | null
           max_advance_days: number | null
           name: string
+          scheduling_mode: string
+          show_queue_position: boolean
           specialty: string
           updated_at: string
           work_end_time: string | null
@@ -224,6 +279,8 @@ export type Database = {
           lunch_start_time?: string | null
           max_advance_days?: number | null
           name: string
+          scheduling_mode?: string
+          show_queue_position?: boolean
           specialty: string
           updated_at?: string
           work_end_time?: string | null
@@ -242,6 +299,8 @@ export type Database = {
           lunch_start_time?: string | null
           max_advance_days?: number | null
           name?: string
+          scheduling_mode?: string
+          show_queue_position?: boolean
           specialty?: string
           updated_at?: string
           work_end_time?: string | null
