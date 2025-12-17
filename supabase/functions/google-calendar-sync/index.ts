@@ -74,12 +74,59 @@ serve(async (req) => {
 
   try {
     const supabase = createClient(SUPABASE_URL!, SUPABASE_SERVICE_ROLE_KEY!);
-    const { action, clinicId, appointment, date, professionalId } = await req.json();
+    const { action, clinicId, appointment, date, professionalId, professional: professionalData } = await req.json();
 
     const accessToken = await getValidAccessToken(supabase, clinicId);
     if (!accessToken) {
       return new Response(JSON.stringify({ error: 'Google Calendar not connected' }), {
         status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Create calendar for a professional
+    if (action === 'create-calendar') {
+      if (!professionalData || !professionalData.id) {
+        return new Response(JSON.stringify({ error: 'Professional data required' }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      console.log(`Creating new calendar for professional: ${professionalData.name}`);
+      
+      const createCalendarResponse = await fetch('https://www.googleapis.com/calendar/v3/calendars', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          summary: professionalData.name,
+          description: `Agenda de ${professionalData.name} - ${professionalData.specialty}`,
+          timeZone: 'America/Sao_Paulo',
+        }),
+      });
+
+      const newCalendar = await createCalendarResponse.json();
+
+      if (newCalendar.error) {
+        console.error('Error creating calendar:', newCalendar.error);
+        return new Response(JSON.stringify({ error: newCalendar.error.message }), {
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      console.log(`Created calendar with ID: ${newCalendar.id}`);
+
+      // Save the calendar ID to the professional record
+      await supabase
+        .from('professionals')
+        .update({ google_calendar_id: newCalendar.id })
+        .eq('id', professionalData.id);
+
+      return new Response(JSON.stringify({ success: true, calendarId: newCalendar.id }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
@@ -99,44 +146,8 @@ serve(async (req) => {
         });
       }
 
-      let calendarId = professional.google_calendar_id;
-
-      // If professional doesn't have a calendar yet, create one
-      if (!calendarId) {
-        console.log(`Creating new calendar for professional: ${professional.name}`);
-        
-        const createCalendarResponse = await fetch('https://www.googleapis.com/calendar/v3/calendars', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${accessToken}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            summary: professional.name,
-            description: `Agenda de ${professional.name} - ${professional.specialty}`,
-            timeZone: 'America/Sao_Paulo',
-          }),
-        });
-
-        const newCalendar = await createCalendarResponse.json();
-
-        if (newCalendar.error) {
-          console.error('Error creating calendar:', newCalendar.error);
-          return new Response(JSON.stringify({ error: newCalendar.error.message }), {
-            status: 500,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          });
-        }
-
-        calendarId = newCalendar.id;
-        console.log(`Created calendar with ID: ${calendarId}`);
-
-        // Save the calendar ID to the professional record
-        await supabase
-          .from('professionals')
-          .update({ google_calendar_id: calendarId })
-          .eq('id', appointment.professional_id);
-      }
+      // Use professional's calendar or fallback to primary
+      const calendarId = professional.google_calendar_id || 'primary';
 
       // Format time properly - appointment.time might be "08:00" or "08:00:00"
       const timeStr = appointment.time.substring(0, 5); // Get "HH:MM"
