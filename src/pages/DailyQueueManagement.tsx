@@ -11,7 +11,8 @@ import {
   UserX,
   CalendarDays,
   Phone,
-  CheckCircle2
+  CheckCircle2,
+  Undo2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
@@ -22,6 +23,8 @@ import {
   fetchClinicQueue,
   markPatientArrived,
   markPatientAttended,
+  undoPatientArrived,
+  undoPatientAttended,
   Clinic,
   Appointment
 } from '@/services/schedulingService';
@@ -94,6 +97,46 @@ const DailyQueueManagement = () => {
     toast({
       title: 'Paciente atendido!',
       description: `${appointment.patient_name} foi marcado como atendido`,
+    });
+    
+    loadData(true);
+  };
+
+  const handleUndoArrived = async (appointment: Appointment) => {
+    const { error } = await undoPatientArrived(appointment.id);
+    
+    if (error) {
+      toast({
+        title: 'Erro',
+        description: 'Não foi possível desfazer',
+        variant: 'destructive',
+      });
+      return;
+    }
+    
+    toast({
+      title: 'Desfeito',
+      description: `${appointment.patient_name} voltou para aguardando`,
+    });
+    
+    loadData(true);
+  };
+
+  const handleUndoAttended = async (appointment: Appointment) => {
+    const { error } = await undoPatientAttended(appointment.id);
+    
+    if (error) {
+      toast({
+        title: 'Erro',
+        description: 'Não foi possível desfazer',
+        variant: 'destructive',
+      });
+      return;
+    }
+    
+    toast({
+      title: 'Desfeito',
+      description: `${appointment.patient_name} voltou para a fila`,
     });
     
     loadData(true);
@@ -245,15 +288,26 @@ const DailyQueueManagement = () => {
                                       </div>
                                       <span className="font-medium text-sm text-foreground">{apt.patient_name}</span>
                                     </div>
-                                    <Button 
-                                      size="sm" 
-                                      variant="default"
-                                      className="h-7 text-xs"
-                                      onClick={() => handleMarkAttended(apt)}
-                                    >
-                                      <CheckCircle2 className="w-3 h-3 mr-1" />
-                                      Atendido
-                                    </Button>
+                                    <div className="flex items-center gap-1">
+                                      <Button 
+                                        size="sm" 
+                                        variant="ghost"
+                                        className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground"
+                                        onClick={() => handleUndoArrived(apt)}
+                                        title="Desfazer chegada"
+                                      >
+                                        <Undo2 className="w-3 h-3" />
+                                      </Button>
+                                      <Button 
+                                        size="sm" 
+                                        variant="default"
+                                        className="h-7 text-xs"
+                                        onClick={() => handleMarkAttended(apt)}
+                                      >
+                                        <CheckCircle2 className="w-3 h-3 mr-1" />
+                                        Atendido
+                                      </Button>
+                                    </div>
                                   </div>
                                   <div className="flex items-center gap-2 text-xs text-muted-foreground ml-9">
                                     <Phone className="w-3 h-3" />
@@ -280,12 +334,23 @@ const DailyQueueManagement = () => {
                           ) : (
                             <div className="space-y-2">
                               {completed.map((apt) => (
-                                <div key={apt.id} className="p-3 rounded-lg bg-blue-500/10 border border-blue-500/20 opacity-70">
-                                  <div className="flex items-center gap-2 mb-1">
-                                    <div className="w-6 h-6 rounded-full bg-blue-500/50 flex items-center justify-center text-xs font-bold text-white">
-                                      {apt.queue_position}
+                                <div key={apt.id} className="p-3 rounded-lg bg-blue-500/10 border border-blue-500/20">
+                                  <div className="flex items-center justify-between mb-1">
+                                    <div className="flex items-center gap-2">
+                                      <div className="w-6 h-6 rounded-full bg-blue-500/50 flex items-center justify-center text-xs font-bold text-white">
+                                        {apt.queue_position}
+                                      </div>
+                                      <span className="font-medium text-sm text-foreground">{apt.patient_name}</span>
                                     </div>
-                                    <span className="font-medium text-sm text-foreground">{apt.patient_name}</span>
+                                    <Button 
+                                      size="sm" 
+                                      variant="ghost"
+                                      className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground"
+                                      onClick={() => handleUndoAttended(apt)}
+                                      title="Desfazer atendido"
+                                    >
+                                      <Undo2 className="w-3 h-3" />
+                                    </Button>
                                   </div>
                                   <div className="flex items-center gap-2 text-xs text-muted-foreground ml-8">
                                     <Phone className="w-3 h-3" />
