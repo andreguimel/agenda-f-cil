@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import LandingPage from "./pages/LandingPage";
 import PublicBooking from "./pages/PublicBooking";
+import QueueTracking from "./pages/QueueTracking";
 import Dashboard from "./pages/Dashboard";
 import ProfessionalsManagement from "./pages/ProfessionalsManagement";
 import BlockedTimesManagement from "./pages/BlockedTimesManagement";
@@ -26,6 +27,7 @@ const App = () => (
             <Route path="/" element={<LandingPage />} />
             <Route path="/auth" element={<AuthPage />} />
             <Route path="/agendar/:clinicSlug" element={<PublicBooking />} />
+            <Route path="/fila/:clinicSlug" element={<QueueTracking />} />
             
             {/* Dashboard routes with shared layout */}
             <Route path="/painel" element={<DashboardLayout />}>

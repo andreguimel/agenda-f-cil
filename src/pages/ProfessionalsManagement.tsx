@@ -9,7 +9,8 @@ import {
   Loader2,
   User,
   Clock,
-  Stethoscope
+  Stethoscope,
+  ListOrdered
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -17,6 +18,13 @@ import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Dialog,
   DialogContent,
@@ -59,6 +67,8 @@ interface ProfessionalFormData {
   lunch_start_time: string;
   lunch_end_time: string;
   max_advance_days: number | null;
+  scheduling_mode: string;
+  show_queue_position: boolean;
 }
 
 const ProfessionalsManagement = () => {
@@ -81,6 +91,8 @@ const ProfessionalsManagement = () => {
     lunch_start_time: '12:00',
     lunch_end_time: '13:00',
     max_advance_days: null,
+    scheduling_mode: 'time_slots',
+    show_queue_position: false,
   });
   const [submitting, setSubmitting] = useState(false);
 
@@ -122,6 +134,8 @@ const ProfessionalsManagement = () => {
       lunch_start_time: '12:00',
       lunch_end_time: '13:00',
       max_advance_days: null,
+      scheduling_mode: 'time_slots',
+      show_queue_position: false,
     });
     setEditingProfessional(null);
   };
@@ -140,6 +154,8 @@ const ProfessionalsManagement = () => {
         lunch_start_time: professional.lunch_start_time || '12:00',
         lunch_end_time: professional.lunch_end_time || '13:00',
         max_advance_days: professional.max_advance_days ?? null,
+        scheduling_mode: professional.scheduling_mode || 'time_slots',
+        show_queue_position: professional.show_queue_position || false,
       });
     } else {
       resetForm();
@@ -179,6 +195,8 @@ const ProfessionalsManagement = () => {
         lunch_start_time: formData.lunch_start_time,
         lunch_end_time: formData.lunch_end_time,
         max_advance_days: formData.max_advance_days,
+        scheduling_mode: formData.scheduling_mode,
+        show_queue_position: formData.show_queue_position,
       });
 
       if (error) {
@@ -213,6 +231,8 @@ const ProfessionalsManagement = () => {
         lunch_start_time: formData.lunch_start_time,
         lunch_end_time: formData.lunch_end_time,
         max_advance_days: formData.max_advance_days,
+        scheduling_mode: formData.scheduling_mode,
+        show_queue_position: formData.show_queue_position,
       });
 
       if (error || !data) {
@@ -438,6 +458,46 @@ const ProfessionalsManagement = () => {
                     </div>
                   )}
                 </div>
+
+                <div className="border-t border-border pt-4 mt-4">
+                  <h4 className="font-medium text-foreground mb-3">Modo de Agendamento</h4>
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="scheduling_mode">Como os pacientes agendam?</Label>
+                      <Select
+                        value={formData.scheduling_mode}
+                        onValueChange={(value) => setFormData(prev => ({ ...prev, scheduling_mode: value }))}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione o modo" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="time_slots">Por horário específico</SelectItem>
+                          <SelectItem value="arrival_order">Por ordem de chegada (turno)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <p className="text-xs text-muted-foreground">
+                        {formData.scheduling_mode === 'time_slots' 
+                          ? 'Pacientes escolhem um horário específico para a consulta'
+                          : 'Pacientes escolhem um turno e são atendidos por ordem de chegada'}
+                      </p>
+                    </div>
+
+                    {formData.scheduling_mode === 'arrival_order' && (
+                      <div className="flex items-center gap-2 pl-0">
+                        <Checkbox
+                          id="show_queue_position"
+                          checked={formData.show_queue_position}
+                          onCheckedChange={(checked) => setFormData(prev => ({ ...prev, show_queue_position: checked === true }))}
+                        />
+                        <Label htmlFor="show_queue_position" className="cursor-pointer text-sm">
+                          Permitir que pacientes vejam sua posição na fila
+                        </Label>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
                 <DialogFooter>
                   <Button type="button" variant="outline" onClick={handleCloseDialog}>
                     Cancelar
@@ -496,9 +556,17 @@ const ProfessionalsManagement = () => {
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2 text-sm text-muted-foreground mb-4">
-                  <Clock className="w-4 h-4" />
-                  <span>{professional.duration} min por consulta</span>
+                <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground mb-4">
+                  <span className="flex items-center gap-1">
+                    <Clock className="w-4 h-4" />
+                    {professional.duration} min
+                  </span>
+                  {professional.scheduling_mode === 'arrival_order' && (
+                    <span className="flex items-center gap-1 bg-primary/10 text-primary px-2 py-0.5 rounded-full text-xs">
+                      <ListOrdered className="w-3 h-3" />
+                      Ordem de chegada
+                    </span>
+                  )}
                 </div>
 
                 <div className="flex items-center justify-between pt-3 border-t border-border">

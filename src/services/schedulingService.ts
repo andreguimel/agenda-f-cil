@@ -22,7 +22,20 @@ export interface Professional {
   has_lunch_break: boolean;
   lunch_start_time: string;
   lunch_end_time: string;
-  max_advance_days: number;
+  max_advance_days: number | null;
+  scheduling_mode: string; // 'time_slots' | 'arrival_order'
+  show_queue_position: boolean;
+}
+
+export interface ProfessionalShift {
+  id: string;
+  professional_id: string;
+  day_of_week: number; // 0 = Sunday, 1 = Monday, etc.
+  shift_name: string; // 'morning', 'afternoon', 'evening'
+  start_time: string;
+  end_time: string;
+  max_slots: number;
+  is_active: boolean;
 }
 
 export interface Appointment {
@@ -769,4 +782,243 @@ export const linkProfileToClinic = async (userId: string, clinicId: string) => {
   }
 
   return { error: null };
+};
+
+// ========== PROFESSIONAL SHIFTS ==========
+
+// Fetch shifts by professional
+export const fetchShiftsByProfessional = async (professionalId: string): Promise<ProfessionalShift[]> => {
+  const { data, error } = await supabase
+    .from('professional_shifts')
+    .select('*')
+    .eq('professional_id', professionalId)
+    .eq('is_active', true)
+    .order('day_of_week')
+    .order('shift_name');
+
+  if (error) {
+    console.error('Error fetching shifts:', error);
+    return [];
+  }
+
+  return data || [];
+};
+
+// Fetch shifts for a specific date
+export const fetchShiftsForDate = async (professionalId: string, date: Date): Promise<ProfessionalShift[]> => {
+  const dayOfWeek = date.getDay();
+  
+  const { data, error } = await supabase
+    .from('professional_shifts')
+    .select('*')
+    .eq('professional_id', professionalId)
+    .eq('day_of_week', dayOfWeek)
+    .eq('is_active', true);
+
+  if (error) {
+    console.error('Error fetching shifts for date:', error);
+    return [];
+  }
+
+  return data || [];
+};
+
+// Create shift
+export const createShift = async (
+  shift: Omit<ProfessionalShift, 'id' | 'is_active'>
+): Promise<{ data: ProfessionalShift | null; error: Error | null }> => {
+  const { data, error } = await supabase
+    .from('professional_shifts')
+    .insert({ ...shift, is_active: true })
+    .select()
+    .single();
+
+  if (error) {
+    console.error('Error creating shift:', error);
+    return { data: null, error };
+  }
+
+  return { data, error: null };
+};
+
+// Update shift
+export const updateShift = async (
+  id: string,
+  updates: Partial<Omit<ProfessionalShift, 'id' | 'professional_id'>>
+): Promise<{ error: Error | null }> => {
+  const { error } = await supabase
+    .from('professional_shifts')
+    .update(updates)
+    .eq('id', id);
+
+  if (error) {
+    console.error('Error updating shift:', error);
+    return { error };
+  }
+
+  return { error: null };
+};
+
+// Delete shift
+export const deleteShift = async (id: string): Promise<{ error: Error | null }> => {
+  const { error } = await supabase
+    .from('professional_shifts')
+    .delete()
+    .eq('id', id);
+
+  if (error) {
+    console.error('Error deleting shift:', error);
+    return { error };
+  }
+
+  return { error: null };
+};
+
+// Get available slots count for a shift on a specific date
+export const getAvailableSlotsForShift = async (
+  professionalId: string,
+  date: string,
+  shiftName: string
+): Promise<{ available: number; total: number }> => {
+  // Get shift config
+  const dateObj = new Date(date + 'T00:00:00');
+  const dayOfWeek = dateObj.getDay();
+  
+  const { data: shift } = await supabase
+    .from('professional_shifts')
+    .select('max_slots')
+    .eq('professional_id', professionalId)
+    .eq('day_of_week', dayOfWeek)
+    .eq('shift_name', shiftName)
+    .eq('is_active', true)
+    .maybeSingle();
+
+  if (!shift) {
+    return { available: 0, total: 0 };
+  }
+
+  // Count booked appointments for this shift
+  const { count } = await supabase
+    .from('appointments')
+    .select('*', { count: 'exact', head: true })
+    .eq('professional_id', professionalId)
+    .eq('date', date)
+    .eq('shift_name', shiftName)
+    .neq('status', 'cancelled');
+
+  const booked = count || 0;
+  return { 
+    available: Math.max(0, shift.max_slots - booked), 
+    total: shift.max_slots 
+  };
+};
+
+// Create appointment with queue position (for arrival order mode)
+export const createAppointmentWithQueue = async (
+  appointment: Omit<Appointment, 'id' | 'created_at' | 'status' | 'notes' | 'professional' | 'time'> & { shift_name: string }
+): Promise<{ data: Appointment | null; error: Error | null; queuePosition?: number }> => {
+  // Get current queue position
+  const { count } = await supabase
+    .from('appointments')
+    .select('*', { count: 'exact', head: true })
+    .eq('professional_id', appointment.professional_id)
+    .eq('date', appointment.date)
+    .eq('shift_name', appointment.shift_name)
+    .neq('status', 'cancelled');
+
+  const queuePosition = (count || 0) + 1;
+
+  const { data, error } = await supabase
+    .from('appointments')
+    .insert({
+      ...appointment,
+      time: '00:00', // Placeholder for arrival order mode
+      status: 'confirmed',
+      queue_position: queuePosition,
+    })
+    .select()
+    .single();
+
+  if (error) {
+    console.error('Error creating appointment with queue:', error);
+    return { data: null, error };
+  }
+
+  return { data, error: null, queuePosition };
+};
+
+// Fetch queue for a specific date and shift
+export const fetchQueueByDateAndShift = async (
+  professionalId: string,
+  date: string,
+  shiftName: string
+): Promise<Appointment[]> => {
+  const { data, error } = await supabase
+    .from('appointments')
+    .select(`
+      *,
+      professional:professionals(*)
+    `)
+    .eq('professional_id', professionalId)
+    .eq('date', date)
+    .eq('shift_name', shiftName)
+    .neq('status', 'cancelled')
+    .order('queue_position', { ascending: true });
+
+  if (error) {
+    console.error('Error fetching queue:', error);
+    return [];
+  }
+
+  return data || [];
+};
+
+// Fetch queue for clinic (all professionals)
+export const fetchClinicQueue = async (
+  clinicId: string,
+  date: string
+): Promise<{ professional: Professional; shifts: { shiftName: string; appointments: Appointment[] }[] }[]> => {
+  // Get all professionals with arrival_order mode
+  const { data: professionals } = await supabase
+    .from('professionals')
+    .select('*')
+    .eq('clinic_id', clinicId)
+    .eq('scheduling_mode', 'arrival_order')
+    .eq('is_active', true);
+
+  if (!professionals?.length) {
+    return [];
+  }
+
+  const result = await Promise.all(
+    professionals.map(async (prof) => {
+      // Get shifts for this day
+      const dateObj = new Date(date + 'T00:00:00');
+      const dayOfWeek = dateObj.getDay();
+      
+      const { data: shifts } = await supabase
+        .from('professional_shifts')
+        .select('*')
+        .eq('professional_id', prof.id)
+        .eq('day_of_week', dayOfWeek)
+        .eq('is_active', true);
+
+      const shiftsWithQueue = await Promise.all(
+        (shifts || []).map(async (shift) => {
+          const appointments = await fetchQueueByDateAndShift(prof.id, date, shift.shift_name);
+          return {
+            shiftName: shift.shift_name,
+            appointments,
+          };
+        })
+      );
+
+      return {
+        professional: prof as Professional,
+        shifts: shiftsWithQueue,
+      };
+    })
+  );
+
+  return result;
 };
