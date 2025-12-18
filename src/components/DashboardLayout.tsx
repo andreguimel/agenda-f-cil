@@ -16,7 +16,8 @@ import {
   Settings,
   Pencil,
   CalendarDays,
-  ListOrdered
+  ListOrdered,
+  Crown
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -37,6 +38,7 @@ import {
   Clinic
 } from '@/services/schedulingService';
 import { GoogleCalendarConnect } from '@/components/GoogleCalendarConnect';
+import { useSubscription } from '@/hooks/useSubscription';
 
 const DEMO_CLINIC_ID = '550e8400-e29b-41d4-a716-446655440000';
 
@@ -69,6 +71,8 @@ const DashboardLayout = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [newSlug, setNewSlug] = useState('');
   const [savingSlug, setSavingSlug] = useState(false);
+  
+  const { subscription, getDaysRemaining } = useSubscription(clinic?.id || null);
 
   // Redirect to auth if not logged in
   useEffect(() => {
@@ -266,6 +270,25 @@ const DashboardLayout = () => {
                 </SheetContent>
               </Sheet>
             </div>
+            
+            {/* Subscription Status */}
+            {subscription && (
+              <Link to="/assinatura" className="mt-4">
+                <div className={`rounded-lg p-3 ${
+                  subscription.status === 'active' 
+                    ? 'bg-primary/10 text-primary' 
+                    : 'bg-amber-500/10 text-amber-600'
+                }`}>
+                  <div className="flex items-center gap-2 text-sm font-medium">
+                    <Crown className="w-4 h-4" />
+                    {subscription.status === 'active' ? 'Plano Ativo' : `Trial: ${getDaysRemaining()} dias`}
+                  </div>
+                  {subscription.status === 'trial' && (
+                    <p className="text-xs mt-1 opacity-80">Clique para assinar</p>
+                  )}
+                </div>
+              </Link>
+            )}
           </nav>
 
           {/* Share Link */}

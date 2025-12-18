@@ -357,6 +357,56 @@ export type Database = {
           },
         ]
       }
+      subscriptions: {
+        Row: {
+          clinic_id: string
+          created_at: string
+          current_period_end: string | null
+          current_period_start: string | null
+          id: string
+          mercadopago_customer_id: string | null
+          mercadopago_subscription_id: string | null
+          price_amount: number
+          status: Database["public"]["Enums"]["subscription_status"]
+          trial_ends_at: string
+          updated_at: string
+        }
+        Insert: {
+          clinic_id: string
+          created_at?: string
+          current_period_end?: string | null
+          current_period_start?: string | null
+          id?: string
+          mercadopago_customer_id?: string | null
+          mercadopago_subscription_id?: string | null
+          price_amount?: number
+          status?: Database["public"]["Enums"]["subscription_status"]
+          trial_ends_at: string
+          updated_at?: string
+        }
+        Update: {
+          clinic_id?: string
+          created_at?: string
+          current_period_end?: string | null
+          current_period_start?: string | null
+          id?: string
+          mercadopago_customer_id?: string | null
+          mercadopago_subscription_id?: string | null
+          price_amount?: number
+          status?: Database["public"]["Enums"]["subscription_status"]
+          trial_ends_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subscriptions_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: true
+            referencedRelation: "clinics"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -365,7 +415,12 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      subscription_status:
+        | "trial"
+        | "active"
+        | "cancelled"
+        | "expired"
+        | "pending"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -492,6 +547,14 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      subscription_status: [
+        "trial",
+        "active",
+        "cancelled",
+        "expired",
+        "pending",
+      ],
+    },
   },
 } as const
