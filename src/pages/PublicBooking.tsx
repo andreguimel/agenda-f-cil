@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { format, addDays, isSameDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Calendar, ChevronLeft, ChevronRight, Clock, User, Mail, Phone, CheckCircle, ArrowLeft, Building2, Loader2, ListOrdered, Users } from 'lucide-react';
+import { Calendar, ChevronLeft, ChevronRight, Clock, User, Mail, Phone, CheckCircle, ArrowLeft, Building2, Loader2, ListOrdered, Users, MapPin } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -253,16 +253,38 @@ const PublicBooking = () => {
     <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="border-b border-border bg-card">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-center">
+        <div className="container mx-auto px-4 py-6">
+          <div className="flex flex-col items-center gap-4">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center shadow-sm">
-                <Building2 className="w-5 h-5 text-primary-foreground" />
+              <div className="w-12 h-12 rounded-xl bg-primary flex items-center justify-center shadow-sm">
+                <Building2 className="w-6 h-6 text-primary-foreground" />
               </div>
               <div>
-                <h1 className="font-semibold text-foreground">{clinic.name}</h1>
+                <h1 className="text-lg font-semibold text-foreground">{clinic.name}</h1>
                 <p className="text-xs text-muted-foreground">Agendamento Online</p>
               </div>
+            </div>
+            
+            {/* Contact Information */}
+            <div className="flex flex-wrap items-center justify-center gap-4 text-sm text-muted-foreground">
+              {clinic.phone && (
+                <a href={`tel:${clinic.phone}`} className="flex items-center gap-1.5 hover:text-primary transition-colors">
+                  <Phone className="w-4 h-4" />
+                  <span>{clinic.phone}</span>
+                </a>
+              )}
+              {clinic.email && (
+                <a href={`mailto:${clinic.email}`} className="flex items-center gap-1.5 hover:text-primary transition-colors">
+                  <Mail className="w-4 h-4" />
+                  <span>{clinic.email}</span>
+                </a>
+              )}
+              {clinic.address && (
+                <span className="flex items-center gap-1.5">
+                  <MapPin className="w-4 h-4" />
+                  <span>{clinic.address}</span>
+                </span>
+              )}
             </div>
           </div>
         </div>
