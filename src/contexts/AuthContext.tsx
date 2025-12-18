@@ -65,7 +65,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const signOut = async () => {
-    await supabase.auth.signOut();
+    // Clear local state immediately to ensure logout works even if API fails
+    setUser(null);
+    setSession(null);
+    try {
+      await supabase.auth.signOut();
+    } catch (error) {
+      // Session might already be invalidated, that's okay
+      console.log('SignOut completed');
+    }
   };
 
   return (
