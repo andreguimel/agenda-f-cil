@@ -12,6 +12,7 @@ import ProfessionalsManagement from "./pages/ProfessionalsManagement";
 import BlockedTimesManagement from "./pages/BlockedTimesManagement";
 import ShiftsManagement from "./pages/ShiftsManagement";
 import DailyQueueManagement from "./pages/DailyQueueManagement";
+import ClinicSettings from "./pages/ClinicSettings";
 import AuthPage from "./pages/AuthPage";
 import NotFound from "./pages/NotFound";
 import DashboardLayout from "./components/DashboardLayout";
@@ -53,6 +54,7 @@ const App = () => (
               <Route path="turnos" element={<ShiftsManagement />} />
               <Route path="fila" element={<DailyQueueManagement />} />
               <Route path="horarios" element={<BlockedTimesManagement />} />
+              <Route path="configuracoes" element={<ClinicSettings />} />
             </Route>
             
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

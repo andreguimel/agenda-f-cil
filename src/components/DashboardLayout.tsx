@@ -224,6 +224,9 @@ const DashboardLayout = () => {
               <Link to="/painel/horarios" onClick={() => setSidebarOpen(false)}>
                 <SidebarItem icon={<Clock className="w-5 h-5" />} label="Bloqueios" active={isActive('/painel/horarios')} />
               </Link>
+              <Link to="/painel/configuracoes" onClick={() => setSidebarOpen(false)}>
+                <SidebarItem icon={<Settings className="w-5 h-5" />} label="Dados da Clínica" active={isActive('/painel/configuracoes')} />
+              </Link>
             </div>
             
             {/* Google Calendar Integration */}
