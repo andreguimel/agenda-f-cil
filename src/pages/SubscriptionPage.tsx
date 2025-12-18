@@ -147,14 +147,30 @@ const SubscriptionPage = () => {
 
             {/* CTA Button */}
             {subscription?.status === 'active' ? (
-              <div className="bg-secondary rounded-lg p-4 text-center">
-                <p className="text-sm font-medium text-primary">Assinatura Ativa</p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Próxima cobrança: {subscription.current_period_end 
-                    ? new Date(subscription.current_period_end).toLocaleDateString('pt-BR')
-                    : 'N/A'
-                  }
-                </p>
+              <div className="space-y-4">
+                <div className="bg-secondary rounded-lg p-4 text-center">
+                  <p className="text-sm font-medium text-primary">Assinatura Ativa</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Próxima cobrança: {subscription.current_period_end 
+                      ? new Date(subscription.current_period_end).toLocaleDateString('pt-BR')
+                      : 'N/A'
+                    }
+                  </p>
+                </div>
+                <Button 
+                  variant="ghost" 
+                  className="w-full"
+                  onClick={() => navigate('/painel')}
+                >
+                  Voltar ao Painel
+                </Button>
+                <Button 
+                  variant="link" 
+                  className="w-full text-muted-foreground"
+                  onClick={() => navigate('/assinatura/cancelar')}
+                >
+                  Cancelar assinatura
+                </Button>
               </div>
             ) : (
               <Button 
@@ -177,8 +193,8 @@ const SubscriptionPage = () => {
               </p>
             )}
 
-            {/* Back button */}
-            {isActive() && (
+            {/* Back button for trial users */}
+            {subscription?.status === 'trial' && (
               <Button 
                 variant="ghost" 
                 className="w-full"

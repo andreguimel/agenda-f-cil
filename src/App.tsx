@@ -16,6 +16,7 @@ import AuthPage from "./pages/AuthPage";
 import NotFound from "./pages/NotFound";
 import DashboardLayout from "./components/DashboardLayout";
 import SubscriptionPage from "./pages/SubscriptionPage";
+import CancelSubscriptionPage from "./pages/CancelSubscriptionPage";
 import { SubscriptionGuard } from "./components/SubscriptionGuard";
 
 const queryClient = new QueryClient();
@@ -33,8 +34,9 @@ const App = () => (
             <Route path="/agendar/:clinicSlug" element={<PublicBooking />} />
             <Route path="/fila/:clinicSlug" element={<QueueTracking />} />
             
-            {/* Subscription page */}
+            {/* Subscription pages */}
             <Route path="/assinatura" element={<SubscriptionPage />} />
+            <Route path="/assinatura/cancelar" element={<CancelSubscriptionPage />} />
             
             {/* Dashboard routes with shared layout - protected by subscription */}
             <Route path="/painel" element={

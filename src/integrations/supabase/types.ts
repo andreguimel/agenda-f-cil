@@ -124,6 +124,38 @@ export type Database = {
           },
         ]
       }
+      cancellation_feedback: {
+        Row: {
+          clinic_id: string
+          created_at: string
+          feedback: string | null
+          id: string
+          reason: string
+        }
+        Insert: {
+          clinic_id: string
+          created_at?: string
+          feedback?: string | null
+          id?: string
+          reason: string
+        }
+        Update: {
+          clinic_id?: string
+          created_at?: string
+          feedback?: string | null
+          id?: string
+          reason?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cancellation_feedback_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       clinics: {
         Row: {
           address: string | null
