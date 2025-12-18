@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { format, addDays, isSameDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Calendar, ChevronLeft, ChevronRight, Clock, User, Mail, Phone, CheckCircle, ArrowLeft, Building2, Loader2, ListOrdered, Users, MapPin } from 'lucide-react';
+import { Calendar, ChevronLeft, ChevronRight, Clock, User, Mail, Phone, CheckCircle, ArrowLeft, Building2, Loader2, ListOrdered, Users, MapPin, MessageCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -271,6 +271,17 @@ const PublicBooking = () => {
                 <a href={`tel:${clinic.phone}`} className="flex items-center gap-1.5 hover:text-primary transition-colors">
                   <Phone className="w-4 h-4" />
                   <span>{clinic.phone}</span>
+                </a>
+              )}
+              {clinic.phone && (
+                <a 
+                  href={`https://wa.me/${clinic.phone.replace(/\D/g, '')}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-1.5 hover:text-green-600 transition-colors"
+                >
+                  <MessageCircle className="w-4 h-4" />
+                  <span>WhatsApp</span>
                 </a>
               )}
               {clinic.email && (
