@@ -12,7 +12,9 @@ import {
   AlertTriangle,
   CheckCircle,
   Clock,
-  XCircle
+  XCircle,
+  UserCog,
+  Crown
 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -64,6 +66,21 @@ interface Metrics {
   churnRate: number;
 }
 
+interface UserProfile {
+  id: string;
+  user_id: string;
+  email: string | null;
+  full_name: string | null;
+  role: string;
+  created_at: string;
+  clinic?: {
+    name: string;
+  } | null;
+  user_role?: {
+    role: string;
+  } | null;
+}
+
 const reasonLabels: Record<string, string> = {
   too_expensive: 'Muito caro',
   not_using: 'Não está usando',
@@ -88,8 +105,10 @@ const AdminDashboard = () => {
   
   const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
   const [feedbacks, setFeedbacks] = useState<Feedback[]>([]);
+  const [users, setUsers] = useState<UserProfile[]>([]);
   const [metrics, setMetrics] = useState<Metrics | null>(null);
   const [loading, setLoading] = useState(true);
+  const [updatingRole, setUpdatingRole] = useState<string | null>(null);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -149,6 +168,30 @@ const AdminDashboard = () => {
         if (feedbackError) throw feedbackError;
         setFeedbacks(feedbackData || []);
 
+        // Fetch all users/profiles
+        const { data: profilesData, error: profilesError } = await supabase
+          .from('profiles')
+          .select(`
+            *,
+            clinic:clinics(name)
+          `)
+          .order('created_at', { ascending: false });
+
+        if (profilesError) throw profilesError;
+
+        // Fetch user roles separately
+        const { data: rolesData } = await supabase
+          .from('user_roles')
+          .select('user_id, role');
+
+        // Merge roles with profiles
+        const profilesWithRoles = (profilesData || []).map(profile => ({
+          ...profile,
+          user_role: rolesData?.find(r => r.user_id === profile.user_id) || null
+        }));
+
+        setUsers(profilesWithRoles);
+
       } catch (error) {
         console.error('Error fetching admin data:', error);
       } finally {
@@ -160,6 +203,44 @@ const AdminDashboard = () => {
       fetchData();
     }
   }, [isAdmin]);
+
+  const toggleUserRole = async (userId: string, currentRole: string | undefined) => {
+    setUpdatingRole(userId);
+    try {
+      const newRole = currentRole === 'admin' ? 'user' : 'admin';
+      
+      // Check if role exists
+      const { data: existingRole } = await supabase
+        .from('user_roles')
+        .select('id')
+        .eq('user_id', userId)
+        .maybeSingle();
+
+      if (existingRole) {
+        // Update existing role
+        await supabase
+          .from('user_roles')
+          .update({ role: newRole })
+          .eq('user_id', userId);
+      } else {
+        // Insert new role
+        await supabase
+          .from('user_roles')
+          .insert({ user_id: userId, role: newRole });
+      }
+
+      // Update local state
+      setUsers(prev => prev.map(u => 
+        u.user_id === userId 
+          ? { ...u, user_role: { role: newRole } }
+          : u
+      ));
+    } catch (error) {
+      console.error('Error updating role:', error);
+    } finally {
+      setUpdatingRole(null);
+    }
+  };
 
   if (authLoading || adminLoading || loading) {
     return (
@@ -263,6 +344,10 @@ const AdminDashboard = () => {
               <CreditCard className="w-4 h-4" />
               Assinaturas
             </TabsTrigger>
+            <TabsTrigger value="users" className="flex items-center gap-2">
+              <UserCog className="w-4 h-4" />
+              Usuários ({users.length})
+            </TabsTrigger>
             <TabsTrigger value="feedback" className="flex items-center gap-2">
               <MessageSquare className="w-4 h-4" />
               Feedbacks ({feedbacks.length})
@@ -325,6 +410,87 @@ const AdminDashboard = () => {
                               <TableCell>R$ {sub.price_amount}</TableCell>
                               <TableCell>
                                 {new Date(sub.created_at).toLocaleDateString('pt-BR')}
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Users Tab */}
+          <TabsContent value="users">
+            <Card>
+              <CardHeader>
+                <CardTitle>Gerenciar Usuários</CardTitle>
+                <CardDescription>
+                  Lista de todos os usuários e suas permissões
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="rounded-md border">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Usuário</TableHead>
+                        <TableHead>Clínica</TableHead>
+                        <TableHead>Permissão</TableHead>
+                        <TableHead>Criado em</TableHead>
+                        <TableHead className="text-right">Ações</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {users.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
+                            Nenhum usuário encontrado
+                          </TableCell>
+                        </TableRow>
+                      ) : (
+                        users.map((profile) => {
+                          const isUserAdmin = profile.user_role?.role === 'admin';
+                          const isCurrentUser = profile.user_id === user?.id;
+                          return (
+                            <TableRow key={profile.id}>
+                              <TableCell>
+                                <div>
+                                  <p className="font-medium flex items-center gap-2">
+                                    {profile.full_name || 'Sem nome'}
+                                    {isUserAdmin && <Crown className="w-4 h-4 text-amber-500" />}
+                                  </p>
+                                  <p className="text-sm text-muted-foreground">{profile.email || '-'}</p>
+                                </div>
+                              </TableCell>
+                              <TableCell>
+                                {profile.clinic?.name || <span className="text-muted-foreground">Sem clínica</span>}
+                              </TableCell>
+                              <TableCell>
+                                <Badge variant={isUserAdmin ? 'default' : 'secondary'}>
+                                  {isUserAdmin ? 'Admin' : 'Usuário'}
+                                </Badge>
+                              </TableCell>
+                              <TableCell>
+                                {new Date(profile.created_at).toLocaleDateString('pt-BR')}
+                              </TableCell>
+                              <TableCell className="text-right">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  disabled={isCurrentUser || updatingRole === profile.user_id}
+                                  onClick={() => toggleUserRole(profile.user_id, profile.user_role?.role)}
+                                >
+                                  {updatingRole === profile.user_id ? (
+                                    <Loader2 className="w-4 h-4 animate-spin" />
+                                  ) : isUserAdmin ? (
+                                    'Remover Admin'
+                                  ) : (
+                                    'Tornar Admin'
+                                  )}
+                                </Button>
                               </TableCell>
                             </TableRow>
                           );
