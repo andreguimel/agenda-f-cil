@@ -296,6 +296,12 @@ const PublicBooking = () => {
                   <span>{clinic.address}</span>
                 </span>
               )}
+              {(clinic as any).opening_time && (clinic as any).closing_time && (
+                <span className="flex items-center gap-1.5">
+                  <Clock className="w-4 h-4" />
+                  <span>{(clinic as any).opening_time?.slice(0, 5)} - {(clinic as any).closing_time?.slice(0, 5)}</span>
+                </span>
+              )}
             </div>
           </div>
         </div>

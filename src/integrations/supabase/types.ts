@@ -159,30 +159,36 @@ export type Database = {
       clinics: {
         Row: {
           address: string | null
+          closing_time: string | null
           created_at: string
           email: string | null
           id: string
           name: string
+          opening_time: string | null
           phone: string | null
           slug: string
           updated_at: string
         }
         Insert: {
           address?: string | null
+          closing_time?: string | null
           created_at?: string
           email?: string | null
           id?: string
           name: string
+          opening_time?: string | null
           phone?: string | null
           slug: string
           updated_at?: string
         }
         Update: {
           address?: string | null
+          closing_time?: string | null
           created_at?: string
           email?: string | null
           id?: string
           name?: string
+          opening_time?: string | null
           phone?: string | null
           slug?: string
           updated_at?: string

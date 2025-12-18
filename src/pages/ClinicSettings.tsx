@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useOutletContext, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Building2, Phone, Mail, MapPin, Loader2, Save } from 'lucide-react';
+import { ArrowLeft, Building2, Phone, Mail, MapPin, Loader2, Save, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -9,8 +9,13 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { Clinic } from '@/services/schedulingService';
 
+interface ClinicWithHours extends Clinic {
+  opening_time?: string | null;
+  closing_time?: string | null;
+}
+
 const ClinicSettings = () => {
-  const { clinic } = useOutletContext<{ clinic: Clinic | null }>();
+  const { clinic } = useOutletContext<{ clinic: ClinicWithHours | null }>();
   const navigate = useNavigate();
   const { toast } = useToast();
   
@@ -20,6 +25,8 @@ const ClinicSettings = () => {
     phone: '',
     email: '',
     address: '',
+    opening_time: '08:00',
+    closing_time: '18:00',
   });
 
   useEffect(() => {
@@ -29,6 +36,8 @@ const ClinicSettings = () => {
         phone: clinic.phone || '',
         email: clinic.email || '',
         address: clinic.address || '',
+        opening_time: clinic.opening_time?.slice(0, 5) || '08:00',
+        closing_time: clinic.closing_time?.slice(0, 5) || '18:00',
       });
     }
   }, [clinic]);
@@ -101,6 +110,8 @@ const ClinicSettings = () => {
         phone: formData.phone.trim() || null,
         email: formData.email.trim() || null,
         address: formData.address.trim() || null,
+        opening_time: formData.opening_time || '08:00',
+        closing_time: formData.closing_time || '18:00',
       })
       .eq('id', clinic.id);
 
@@ -219,6 +230,41 @@ const ClinicSettings = () => {
                 placeholder="Av. Paulista, 1000 - São Paulo, SP"
                 maxLength={200}
               />
+            </div>
+
+            <div className="space-y-2">
+              <Label className="flex items-center gap-2">
+                <Clock className="w-4 h-4 text-muted-foreground" />
+                Horário de Funcionamento
+              </Label>
+              <div className="flex items-center gap-2">
+                <div className="flex-1">
+                  <Label htmlFor="opening_time" className="text-xs text-muted-foreground">
+                    Abertura
+                  </Label>
+                  <Input
+                    id="opening_time"
+                    type="time"
+                    value={formData.opening_time}
+                    onChange={(e) => handleChange('opening_time', e.target.value)}
+                  />
+                </div>
+                <span className="text-muted-foreground mt-5">às</span>
+                <div className="flex-1">
+                  <Label htmlFor="closing_time" className="text-xs text-muted-foreground">
+                    Fechamento
+                  </Label>
+                  <Input
+                    id="closing_time"
+                    type="time"
+                    value={formData.closing_time}
+                    onChange={(e) => handleChange('closing_time', e.target.value)}
+                  />
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Horário exibido na página de agendamento
+              </p>
             </div>
 
             <div className="pt-4">
