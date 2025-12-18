@@ -11,3 +11,6 @@ verify_jwt = false
 
 [functions.mercadopago-create-subscription]
 verify_jwt = false
+
+[functions.mercadopago-cancel]
+verify_jwt = false
