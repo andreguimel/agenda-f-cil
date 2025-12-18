@@ -17,6 +17,7 @@ import NotFound from "./pages/NotFound";
 import DashboardLayout from "./components/DashboardLayout";
 import SubscriptionPage from "./pages/SubscriptionPage";
 import CancelSubscriptionPage from "./pages/CancelSubscriptionPage";
+import AdminDashboard from "./pages/AdminDashboard";
 import { SubscriptionGuard } from "./components/SubscriptionGuard";
 
 const queryClient = new QueryClient();
@@ -37,6 +38,9 @@ const App = () => (
             {/* Subscription pages */}
             <Route path="/assinatura" element={<SubscriptionPage />} />
             <Route path="/assinatura/cancelar" element={<CancelSubscriptionPage />} />
+            
+            {/* Admin dashboard */}
+            <Route path="/admin" element={<AdminDashboard />} />
             
             {/* Dashboard routes with shared layout - protected by subscription */}
             <Route path="/painel" element={
