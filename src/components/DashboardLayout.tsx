@@ -17,7 +17,8 @@ import {
   Pencil,
   CalendarDays,
   ListOrdered,
-  Crown
+  Crown,
+  Shield
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -39,6 +40,7 @@ import {
 } from '@/services/schedulingService';
 import { GoogleCalendarConnect } from '@/components/GoogleCalendarConnect';
 import { useSubscription } from '@/hooks/useSubscription';
+import { useAdmin } from '@/hooks/useAdmin';
 
 const DEMO_CLINIC_ID = '550e8400-e29b-41d4-a716-446655440000';
 
@@ -73,6 +75,7 @@ const DashboardLayout = () => {
   const [savingSlug, setSavingSlug] = useState(false);
   
   const { subscription, getDaysRemaining } = useSubscription(clinic?.id || null);
+  const { isAdmin } = useAdmin();
 
   // Redirect to auth if not logged in
   useEffect(() => {
@@ -286,6 +289,18 @@ const DashboardLayout = () => {
                   {subscription.status === 'trial' && (
                     <p className="text-xs mt-1 opacity-80">Clique para assinar</p>
                   )}
+                </div>
+              </Link>
+            )}
+            
+            {/* Admin Link */}
+            {isAdmin && (
+              <Link to="/admin" className="mt-4 block" onClick={() => setSidebarOpen(false)}>
+                <div className="rounded-lg p-3 bg-secondary hover:bg-secondary/80 transition-colors">
+                  <div className="flex items-center gap-2 text-sm font-medium">
+                    <Shield className="w-4 h-4" />
+                    Dashboard Admin
+                  </div>
                 </div>
               </Link>
             )}
