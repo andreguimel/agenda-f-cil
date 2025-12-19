@@ -227,27 +227,38 @@ const Dashboard = () => {
           
           {todayAppointments.length > 0 ? (
             <div className="space-y-3">
-              {todayAppointments.slice(0, 4).map(apt => (
-                <div key={apt.id} className="flex items-center gap-3 p-3 rounded-lg bg-secondary">
-                  <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                    <Users className="w-4 h-4 text-primary" />
+              {todayAppointments.slice(0, 4).map(apt => {
+                const professional = professionals.find(p => p.id === apt.professional_id);
+                return (
+                  <div key={apt.id} className="flex items-center gap-3 p-3 rounded-lg bg-secondary">
+                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                      <Users className="w-4 h-4 text-primary" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-foreground truncate">{apt.patient_name}</p>
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <span className="text-primary font-medium">
+                          {apt.shift_name ? (
+                            apt.shift_name === 'morning' ? 'Manhã' : 
+                            apt.shift_name === 'afternoon' ? 'Tarde' : 'Noite'
+                          ) : apt.time.substring(0, 5)}
+                        </span>
+                        {professional && (
+                          <>
+                            <span>•</span>
+                            <span className="truncate">{professional.name}</span>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                    {apt.queue_position && (
+                      <span className="text-sm font-medium text-primary">
+                        {apt.queue_position}º
+                      </span>
+                    )}
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium text-foreground truncate">{apt.patient_name}</p>
-                    <p className="text-sm text-muted-foreground">
-                      {apt.shift_name ? (
-                        apt.shift_name === 'morning' ? 'Manhã' : 
-                        apt.shift_name === 'afternoon' ? 'Tarde' : 'Noite'
-                      ) : apt.time.substring(0, 5)}
-                    </p>
-                  </div>
-                  {apt.queue_position && (
-                    <span className="text-sm font-medium text-primary">
-                      {apt.queue_position}º
-                    </span>
-                  )}
-                </div>
-              ))}
+                );
+              })}
               {todayAppointments.length > 4 && (
                 <p className="text-sm text-muted-foreground text-center pt-2">
                   +{todayAppointments.length - 4} mais agendamentos
