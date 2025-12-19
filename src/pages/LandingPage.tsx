@@ -1,4 +1,4 @@
-import { Calendar, Clock, Users, CheckCircle, Sparkles, ArrowRight, Zap, Shield, Gift } from 'lucide-react';
+import { Calendar, Clock, Users, CheckCircle, ArrowRight, Zap, Shield, Gift, Star, Quote } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
 
@@ -193,8 +193,44 @@ const LandingPage = () => {
           </div>
         </div>
 
+        {/* Testimonials Section */}
+        <div className="mt-24 animate-slide-up" style={{ animationDelay: '0.5s' }}>
+          <div className="text-center mb-12">
+            <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
+              O que nossos clientes dizem
+            </h2>
+            <p className="text-muted-foreground max-w-xl mx-auto">
+              Profissionais de saúde que transformaram a gestão de suas agendas.
+            </p>
+          </div>
+          
+          <div className="grid md:grid-cols-3 gap-6">
+            <TestimonialCard
+              name="Dra. Mariana Costa"
+              role="Dermatologista"
+              image="MC"
+              rating={5}
+              testimonial="O Agendaberta reduziu em 70% as faltas no meu consultório. Meus pacientes adoram a facilidade de agendar online."
+            />
+            <TestimonialCard
+              name="Dr. Ricardo Mendes"
+              role="Clínico Geral"
+              image="RM"
+              rating={5}
+              testimonial="Antes eu perdia horas organizando agenda. Agora tudo é automático e sincroniza com meu Google Calendar."
+            />
+            <TestimonialCard
+              name="Dra. Fernanda Lima"
+              role="Nutricionista"
+              image="FL"
+              rating={5}
+              testimonial="Em 3 meses consegui dobrar meus atendimentos. A plataforma é simples e meus pacientes agendam 24h por dia."
+            />
+          </div>
+        </div>
+
         {/* CTA Section */}
-        <div className="mt-24 text-center animate-slide-up" style={{ animationDelay: '0.5s' }}>
+        <div className="mt-24 text-center animate-slide-up" style={{ animationDelay: '0.6s' }}>
           <div className="bg-gradient-to-br from-primary/10 via-primary/5 to-accent/10 rounded-3xl p-10 md:p-16 border border-primary/20">
             <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
               Pronto para simplificar sua agenda?
@@ -259,6 +295,35 @@ const BenefitCard = ({ number, title, description }: BenefitCardProps) => (
     <span className="text-4xl font-bold text-primary/20">{number}</span>
     <h3 className="font-semibold text-foreground text-xl mt-4 mb-2">{title}</h3>
     <p className="text-muted-foreground leading-relaxed">{description}</p>
+  </div>
+);
+
+interface TestimonialCardProps {
+  name: string;
+  role: string;
+  image: string;
+  rating: number;
+  testimonial: string;
+}
+
+const TestimonialCard = ({ name, role, image, rating, testimonial }: TestimonialCardProps) => (
+  <div className="bg-card/60 backdrop-blur-sm rounded-2xl p-8 border border-border/50 hover:border-primary/30 hover:shadow-xl transition-all duration-300 relative">
+    <Quote className="w-10 h-10 text-primary/10 absolute top-6 right-6" />
+    <div className="flex items-center gap-1 mb-4">
+      {Array.from({ length: rating }).map((_, i) => (
+        <Star key={i} className="w-4 h-4 fill-primary text-primary" />
+      ))}
+    </div>
+    <p className="text-foreground leading-relaxed mb-6">"{testimonial}"</p>
+    <div className="flex items-center gap-3">
+      <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center text-primary-foreground font-bold text-sm">
+        {image}
+      </div>
+      <div>
+        <p className="font-semibold text-foreground">{name}</p>
+        <p className="text-sm text-muted-foreground">{role}</p>
+      </div>
+    </div>
   </div>
 );
 
