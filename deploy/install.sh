@@ -2,7 +2,7 @@
 
 # ============================================
 # Agendaberta - Instalador Automático Completo
-# Uso: ./install.sh [domínio] [--update]
+# Uso: ./install.sh [domínio] [--update] [--ssl]
 # ============================================
 
 set -e
@@ -18,6 +18,7 @@ NC='\033[0m'
 REPO_URL="https://github.com/andreguimel/agenda-f-cil.git"
 APP_DIR="/var/www/agendaberta"
 UPDATE_ONLY=false
+ENABLE_SSL=false
 DOMAIN="agendaberta.com.br"
 
 # Processar argumentos
@@ -25,6 +26,9 @@ for arg in "$@"; do
     case $arg in
         --update|-u)
             UPDATE_ONLY=true
+            ;;
+        --ssl|-s)
+            ENABLE_SSL=true
             ;;
         *)
             DOMAIN="$arg"
@@ -60,6 +64,22 @@ do_update() {
     exit 0
 }
 
+# Função para configurar SSL
+setup_ssl() {
+    echo -e "${BLUE}Configurando SSL com Let's Encrypt...${NC}"
+    
+    # Verificar se já existe certificado
+    if sudo certbot certificates 2>/dev/null | grep -q "$DOMAIN"; then
+        echo -e "${YELLOW}Certificado já existe para $DOMAIN. Renovando se necessário...${NC}"
+        sudo certbot renew --quiet
+    else
+        echo -e "${BLUE}Obtendo novo certificado SSL...${NC}"
+        sudo certbot --nginx -d $DOMAIN -d www.$DOMAIN --non-interactive --agree-tos --email admin@$DOMAIN --redirect
+    fi
+    
+    echo -e "${GREEN}SSL configurado com sucesso!${NC}"
+}
+
 # Se --update, executar apenas atualização
 if [ "$UPDATE_ONLY" = true ]; then
     do_update
@@ -77,6 +97,7 @@ echo "============================================"
 echo -e "${NC}"
 echo -e "${YELLOW}Domínio: $DOMAIN${NC}"
 echo -e "${YELLOW}Repositório: $REPO_URL${NC}"
+echo -e "${YELLOW}SSL: $([ "$ENABLE_SSL" = true ] && echo "Sim" || echo "Não (use --ssl para ativar)")${NC}"
 echo ""
 
 # 1. Atualizar sistema
@@ -166,12 +187,34 @@ sudo ln -sf /etc/nginx/sites-available/agendaberta /etc/nginx/sites-enabled/
 sudo rm -f /etc/nginx/sites-enabled/default
 sudo nginx -t && sudo systemctl reload nginx
 
+# 8. Configurar SSL (se solicitado ou perguntar)
+if [ "$ENABLE_SSL" = true ]; then
+    setup_ssl
+else
+    echo ""
+    read -p "Deseja configurar SSL/HTTPS agora? (s/n): " -n 1 -r
+    echo ""
+    if [[ $REPLY =~ ^[Ss]$ ]]; then
+        setup_ssl
+    else
+        echo -e "${YELLOW}Para ativar HTTPS depois, execute:${NC}"
+        echo "sudo certbot --nginx -d $DOMAIN -d www.$DOMAIN"
+    fi
+fi
+
 echo -e "${GREEN}"
 echo "============================================"
 echo "   Instalação concluída com sucesso!"
 echo "============================================"
 echo -e "${NC}"
-echo -e "${YELLOW}Para ativar HTTPS, execute:${NC}"
-echo "sudo certbot --nginx -d $DOMAIN -d www.$DOMAIN"
+
+if [ "$ENABLE_SSL" = true ] || [[ $REPLY =~ ^[Ss]$ ]]; then
+    echo -e "${GREEN}Acesse: https://$DOMAIN${NC}"
+else
+    echo -e "${GREEN}Acesse: http://$DOMAIN${NC}"
+fi
+
 echo ""
-echo -e "${GREEN}Acesse: http://$DOMAIN${NC}"
+echo -e "${YELLOW}Comandos úteis:${NC}"
+echo "  Atualizar: ./install.sh --update"
+echo "  Ativar SSL: sudo certbot --nginx -d $DOMAIN -d www.$DOMAIN"
