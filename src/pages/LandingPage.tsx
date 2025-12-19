@@ -7,6 +7,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import AnimatedMockup from '@/components/AnimatedMockup';
 
 const LandingPage = () => {
   return (
@@ -142,61 +143,17 @@ const LandingPage = () => {
           </div>
         </div>
 
-        {/* Demo Preview */}
+        {/* Animated Mockup - How it Works */}
         <div className="mt-24 animate-slide-up" style={{ animationDelay: '0.4s' }}>
-          <div className="bg-card/80 backdrop-blur-sm rounded-3xl shadow-2xl border border-border/50 overflow-hidden">
-            <div className="bg-secondary/30 px-6 py-4 border-b border-border/50">
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded-full bg-destructive/50" />
-                <div className="w-3 h-3 rounded-full bg-warning/50" />
-                <div className="w-3 h-3 rounded-full bg-success/50" />
-                <span className="ml-4 text-xs text-muted-foreground font-medium">agendaberta.com/agendar/sua-clinica</span>
-              </div>
-            </div>
-            <div className="p-8 lg:p-12">
-              <div className="grid lg:grid-cols-3 gap-8">
-                <div className="lg:col-span-1">
-                  <h3 className="font-semibold text-foreground mb-4 text-sm uppercase tracking-wider text-muted-foreground">Profissionais</h3>
-                  <div className="space-y-3">
-                    {['Dra. Ana Silva', 'Dr. Carlos Santos', 'Dra. Marina Costa'].map((name, i) => (
-                      <div 
-                        key={name} 
-                        className={`p-4 rounded-2xl border-2 transition-all cursor-pointer ${
-                          i === 0 
-                            ? 'border-primary bg-primary/5 shadow-md shadow-primary/10' 
-                            : 'border-border/50 hover:border-primary/30 hover:bg-secondary/50'
-                        }`}
-                      >
-                        <p className="font-semibold text-foreground">{name}</p>
-                        <p className="text-sm text-muted-foreground">
-                          {i === 0 ? 'Clínica Geral' : i === 1 ? 'Cardiologia' : 'Dermatologia'}
-                        </p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-                <div className="lg:col-span-2">
-                  <h3 className="font-semibold text-foreground mb-4 text-sm uppercase tracking-wider text-muted-foreground">Horários Disponíveis</h3>
-                  <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
-                    {['08:00', '08:30', '09:00', '09:30', '10:00', '10:30', '11:00', '11:30', '14:00', '14:30', '15:00', '15:30'].map((time, i) => (
-                      <button
-                        key={time}
-                        className={`py-3 px-3 rounded-xl text-sm font-semibold transition-all ${
-                          i === 4
-                            ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/25'
-                            : [2, 7, 11].includes(i)
-                            ? 'bg-muted/50 text-muted-foreground/50 cursor-not-allowed line-through'
-                            : 'bg-secondary hover:bg-primary/10 text-secondary-foreground hover:text-primary'
-                        }`}
-                      >
-                        {time}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </div>
+          <div className="text-center mb-12">
+            <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
+              Veja como funciona
+            </h2>
+            <p className="text-muted-foreground max-w-xl mx-auto">
+              Em poucos passos, seu paciente agenda e você recebe tudo automaticamente.
+            </p>
           </div>
+          <AnimatedMockup />
         </div>
 
         {/* Testimonials Section */}
