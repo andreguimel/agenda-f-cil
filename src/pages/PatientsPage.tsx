@@ -253,7 +253,7 @@ const PatientsPage = () => {
                         asChild
                       >
                         <a
-                          href={`https://wa.me/${patient.phone.replace(/\D/g, '')}`}
+                          href={`https://wa.me/55${patient.phone.replace(/\D/g, '')}`}
                           target="_blank"
                           rel="noopener noreferrer"
                         >
