@@ -359,10 +359,17 @@ const ShiftsManagement = () => {
             </div>
 
             {/* Shifts by Day */}
-            {selectedProfessional && (
+            {selectedProfessional && (() => {
+              const availableDays = DAYS_OF_WEEK.filter(day => {
+                if (day.value === 0 && !selectedProfessional.works_sunday) return false;
+                if (day.value === 6 && !selectedProfessional.works_saturday) return false;
+                return true;
+              });
+              
+              return (
               <Tabs defaultValue="1" className="w-full">
-                <TabsList className="grid grid-cols-7 w-full">
-                  {DAYS_OF_WEEK.map(day => (
+                <TabsList className={`grid w-full`} style={{ gridTemplateColumns: `repeat(${availableDays.length}, 1fr)` }}>
+                  {availableDays.map(day => (
                     <TabsTrigger key={day.value} value={String(day.value)} className="text-xs sm:text-sm">
                       <span className="hidden sm:inline">{day.label}</span>
                       <span className="sm:hidden">{day.short}</span>
@@ -370,7 +377,7 @@ const ShiftsManagement = () => {
                   ))}
                 </TabsList>
 
-                {DAYS_OF_WEEK.map(day => (
+                {availableDays.map(day => (
                   <TabsContent key={day.value} value={String(day.value)} className="mt-4">
                     {loadingShifts ? (
                       <div className="flex justify-center py-8">
@@ -449,7 +456,8 @@ const ShiftsManagement = () => {
                   </TabsContent>
                 ))}
               </Tabs>
-            )}
+              );
+            })()}
           </div>
         )}
       </main>
@@ -483,7 +491,13 @@ const ShiftsManagement = () => {
                 </Select>
               ) : (
                 <div className="flex flex-wrap gap-3 p-3 border rounded-md bg-background">
-                  {DAYS_OF_WEEK.map(day => (
+                  {DAYS_OF_WEEK
+                    .filter(day => {
+                      if (day.value === 0 && !selectedProfessional?.works_sunday) return false;
+                      if (day.value === 6 && !selectedProfessional?.works_saturday) return false;
+                      return true;
+                    })
+                    .map(day => (
                     <div key={day.value} className="flex items-center space-x-2">
                       <Checkbox
                         id={`day-${day.value}`}
