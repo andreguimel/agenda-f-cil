@@ -6,6 +6,8 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { HelmetProvider } from "react-helmet-async";
 import { AuthProvider } from "@/contexts/AuthContext";
 import LandingPage from "./pages/LandingPage";
+import PrivacyPage from "./pages/PrivacyPage";
+import TermsPage from "./pages/TermsPage";
 import PublicBooking from "./pages/PublicBooking";
 import QueueTracking from "./pages/QueueTracking";
 import Dashboard from "./pages/Dashboard";
@@ -39,6 +41,8 @@ const App = () => (
         <BrowserRouter>
           <Routes>
             <Route path="/" element={<LandingPage />} />
+            <Route path="/privacidade" element={<PrivacyPage />} />
+            <Route path="/termos" element={<TermsPage />} />
             <Route path="/auth" element={<AuthPage />} />
             <Route path="/agendar/:clinicSlug" element={<PublicBooking />} />
             <Route path="/fila/:clinicSlug" element={<QueueTracking />} />
