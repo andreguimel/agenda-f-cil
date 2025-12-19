@@ -10,7 +10,8 @@ import {
   Calendar,
   Loader2,
   User,
-  History
+  History,
+  MessageCircle
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -244,14 +245,30 @@ const PatientsPage = () => {
                     {format(new Date(patient.created_at), "dd/MM/yyyy", { locale: ptBR })}
                   </TableCell>
                   <TableCell className="text-right">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => loadPatientHistory(patient)}
-                    >
-                      <History className="w-4 h-4 mr-1" />
-                      Histórico
-                    </Button>
+                    <div className="flex items-center justify-end gap-1">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-green-600 hover:text-green-700 hover:bg-green-50"
+                        asChild
+                      >
+                        <a
+                          href={`https://wa.me/${patient.phone.replace(/\D/g, '')}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          <MessageCircle className="w-4 h-4" />
+                        </a>
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => loadPatientHistory(patient)}
+                      >
+                        <History className="w-4 h-4 mr-1" />
+                        Histórico
+                      </Button>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))}
