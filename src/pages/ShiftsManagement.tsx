@@ -9,6 +9,7 @@ import {
   CalendarDays
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
@@ -75,7 +76,7 @@ const SHIFT_TYPES = [
 ];
 
 interface ShiftFormData {
-  day_of_week: number;
+  days_of_week: number[];
   shift_name: string;
   start_time: string;
   end_time: string;
@@ -95,7 +96,7 @@ const ShiftsManagement = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingShift, setEditingShift] = useState<ProfessionalShift | null>(null);
   const [formData, setFormData] = useState<ShiftFormData>({
-    day_of_week: 1,
+    days_of_week: [1],
     shift_name: 'morning',
     start_time: '08:00',
     end_time: '12:00',
@@ -154,7 +155,7 @@ const ShiftsManagement = () => {
 
   const resetForm = () => {
     setFormData({
-      day_of_week: 1,
+      days_of_week: [1],
       shift_name: 'morning',
       start_time: '08:00',
       end_time: '12:00',
@@ -167,7 +168,7 @@ const ShiftsManagement = () => {
     if (shift) {
       setEditingShift(shift);
       setFormData({
-        day_of_week: shift.day_of_week,
+        days_of_week: [shift.day_of_week],
         shift_name: shift.shift_name,
         start_time: shift.start_time.slice(0, 5),
         end_time: shift.end_time.slice(0, 5),
@@ -187,12 +188,19 @@ const ShiftsManagement = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedProfessional) return;
+    if (formData.days_of_week.length === 0) {
+      toast({
+        title: 'Selecione pelo menos um dia',
+        variant: 'destructive',
+      });
+      return;
+    }
 
     setSubmitting(true);
 
     if (editingShift) {
       const { error } = await updateShift(editingShift.id, {
-        day_of_week: formData.day_of_week,
+        day_of_week: formData.days_of_week[0],
         shift_name: formData.shift_name,
         start_time: formData.start_time,
         end_time: formData.end_time,
@@ -208,7 +216,7 @@ const ShiftsManagement = () => {
       } else {
         setShifts(prev => 
           prev.map(s => s.id === editingShift.id 
-            ? { ...s, ...formData }
+            ? { ...s, day_of_week: formData.days_of_week[0], shift_name: formData.shift_name, start_time: formData.start_time, end_time: formData.end_time, max_slots: formData.max_slots }
             : s
           )
         );
@@ -219,28 +227,44 @@ const ShiftsManagement = () => {
         handleCloseDialog();
       }
     } else {
-      const { data, error } = await createShift({
-        professional_id: selectedProfessional.id,
-        day_of_week: formData.day_of_week,
-        shift_name: formData.shift_name,
-        start_time: formData.start_time,
-        end_time: formData.end_time,
-        max_slots: formData.max_slots,
-      });
+      const results = await Promise.all(
+        formData.days_of_week.map(day => 
+          createShift({
+            professional_id: selectedProfessional.id,
+            day_of_week: day,
+            shift_name: formData.shift_name,
+            start_time: formData.start_time,
+            end_time: formData.end_time,
+            max_slots: formData.max_slots,
+          })
+        )
+      );
 
-      if (error || !data) {
+      const errors = results.filter(r => r.error);
+      const successes = results.filter(r => r.data);
+
+      if (successes.length > 0) {
+        setShifts(prev => [...prev, ...successes.map(r => r.data!)]);
+      }
+
+      if (errors.length > 0 && successes.length === 0) {
         toast({
           title: 'Erro ao criar',
-          description: error?.message?.includes('duplicate') 
+          description: errors[0].error?.message?.includes('duplicate') 
             ? 'Já existe um turno com esse tipo neste dia' 
-            : 'Não foi possível adicionar o turno',
+            : 'Não foi possível adicionar os turnos',
           variant: 'destructive',
         });
-      } else {
-        setShifts(prev => [...prev, data]);
+      } else if (errors.length > 0) {
         toast({
-          title: 'Turno adicionado',
-          description: 'O turno foi criado com sucesso',
+          title: 'Turnos parcialmente criados',
+          description: `${successes.length} turno(s) criado(s), ${errors.length} erro(s)`,
+        });
+        handleCloseDialog();
+      } else {
+        toast({
+          title: 'Turnos adicionados',
+          description: `${successes.length} turno(s) criado(s) com sucesso`,
         });
         handleCloseDialog();
       }
@@ -359,7 +383,7 @@ const ShiftsManagement = () => {
                             <Clock className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
                             <p className="text-muted-foreground mb-3">Nenhum turno configurado para {day.label}</p>
                             <Button variant="outline" size="sm" onClick={() => {
-                              setFormData(prev => ({ ...prev, day_of_week: day.value }));
+                              setFormData(prev => ({ ...prev, days_of_week: [day.value] }));
                               handleOpenDialog();
                             }}>
                               <Plus className="w-4 h-4 mr-1" />
@@ -439,12 +463,12 @@ const ShiftsManagement = () => {
             </DialogTitle>
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="day_of_week">Dia da Semana</Label>
+            <div className="space-y-2">
+              <Label>Dias da Semana</Label>
+              {editingShift ? (
                 <Select
-                  value={String(formData.day_of_week)}
-                  onValueChange={(v) => setFormData(prev => ({ ...prev, day_of_week: parseInt(v) }))}
+                  value={String(formData.days_of_week[0])}
+                  onValueChange={(v) => setFormData(prev => ({ ...prev, days_of_week: [parseInt(v)] }))}
                 >
                   <SelectTrigger>
                     <SelectValue />
@@ -457,25 +481,50 @@ const ShiftsManagement = () => {
                     ))}
                   </SelectContent>
                 </Select>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="shift_name">Turno</Label>
-                <Select
-                  value={formData.shift_name}
-                  onValueChange={(v) => setFormData(prev => ({ ...prev, shift_name: v }))}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {SHIFT_TYPES.map(type => (
-                      <SelectItem key={type.value} value={type.value}>
-                        {type.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+              ) : (
+                <div className="flex flex-wrap gap-3 p-3 border rounded-md bg-background">
+                  {DAYS_OF_WEEK.map(day => (
+                    <div key={day.value} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={`day-${day.value}`}
+                        checked={formData.days_of_week.includes(day.value)}
+                        onCheckedChange={(checked) => {
+                          setFormData(prev => ({
+                            ...prev,
+                            days_of_week: checked 
+                              ? [...prev.days_of_week, day.value].sort((a, b) => a - b)
+                              : prev.days_of_week.filter(d => d !== day.value)
+                          }));
+                        }}
+                      />
+                      <label 
+                        htmlFor={`day-${day.value}`}
+                        className="text-sm font-medium leading-none cursor-pointer"
+                      >
+                        {day.short}
+                      </label>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="shift_name">Turno</Label>
+              <Select
+                value={formData.shift_name}
+                onValueChange={(v) => setFormData(prev => ({ ...prev, shift_name: v }))}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {SHIFT_TYPES.map(type => (
+                    <SelectItem key={type.value} value={type.value}>
+                      {type.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
