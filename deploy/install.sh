@@ -2,6 +2,7 @@
 
 # ============================================
 # Agendaberta - Instalador Automático Completo
+# Uso: ./install.sh [domínio] [--update]
 # ============================================
 
 set -e
@@ -14,9 +15,60 @@ BLUE='\033[0;34m'
 NC='\033[0m'
 
 # Configurações
-DOMAIN=${1:-"agendaberta.com.br"}
 REPO_URL="https://github.com/andreguimel/agenda-f-cil.git"
 APP_DIR="/var/www/agendaberta"
+UPDATE_ONLY=false
+DOMAIN="agendaberta.com.br"
+
+# Processar argumentos
+for arg in "$@"; do
+    case $arg in
+        --update|-u)
+            UPDATE_ONLY=true
+            ;;
+        *)
+            DOMAIN="$arg"
+            ;;
+    esac
+done
+
+# Função de atualização rápida
+do_update() {
+    echo -e "${GREEN}"
+    echo "============================================"
+    echo "   Agendaberta - Atualização Rápida"
+    echo "============================================"
+    echo -e "${NC}"
+    
+    cd $APP_DIR
+    echo -e "${BLUE}[1/3] Baixando atualizações...${NC}"
+    git pull origin main
+    
+    echo -e "${BLUE}[2/3] Instalando dependências...${NC}"
+    npm ci --production=false
+    
+    echo -e "${BLUE}[3/3] Compilando aplicação...${NC}"
+    npm run build
+    
+    sudo systemctl reload nginx
+    
+    echo -e "${GREEN}"
+    echo "============================================"
+    echo "   Atualização concluída!"
+    echo "============================================"
+    echo -e "${NC}"
+    exit 0
+}
+
+# Se --update, executar apenas atualização
+if [ "$UPDATE_ONLY" = true ]; then
+    do_update
+fi
+
+# Função para verificar se comando existe
+command_exists() {
+    command -v "$1" >/dev/null 2>&1
+}
 
 echo -e "${GREEN}"
 echo "============================================"
@@ -26,11 +78,6 @@ echo -e "${NC}"
 echo -e "${YELLOW}Domínio: $DOMAIN${NC}"
 echo -e "${YELLOW}Repositório: $REPO_URL${NC}"
 echo ""
-
-# Função para verificar se comando existe
-command_exists() {
-    command -v "$1" >/dev/null 2>&1
-}
 
 # 1. Atualizar sistema
 echo -e "${BLUE}[1/7] Atualizando sistema...${NC}"
