@@ -20,7 +20,7 @@ echo -e "${NC}"
 
 # Configurações - EDITE AQUI
 DOMAIN=${1:-"agendaberta.com.br"}
-REPO_URL=${2:-"https://github.com/SEU_USUARIO/SEU_REPO.git"}
+REPO_URL=${2:-"https://github.com/andreguimel/agenda-f-cil.git"}
 APP_DIR="/var/www/agendaberta"
 
 echo -e "${YELLOW}Domínio: $DOMAIN${NC}"
