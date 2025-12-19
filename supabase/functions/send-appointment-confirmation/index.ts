@@ -175,7 +175,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Send email
     const { data: emailData, error: emailError } = await resend.emails.send({
-      from: "Agendaberta <onboarding@resend.dev>",
+      from: "Agendaberta <noreply@agendaberta.com.br>",
       to: [appointment.patient_email],
       subject: `Agendamento confirmado - ${clinic.name}`,
       html: emailHtml,
