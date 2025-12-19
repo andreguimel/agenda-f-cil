@@ -576,7 +576,18 @@ const PublicBooking = () => {
                         return (order[a.shift_name] || 99) - (order[b.shift_name] || 99);
                       }).map((shift) => {
                         const availability = shiftAvailability[shift.shift_name];
-                        const isAvailable = availability && availability.available > 0;
+                        const hasSlots = availability && availability.available > 0;
+                        
+                        // Check if shift has passed for today
+                        const now = new Date();
+                        const isToday = selectedDate.toDateString() === now.toDateString();
+                        const [endH, endM] = shift.end_time.slice(0, 5).split(':').map(Number);
+                        const shiftEndMinutes = endH * 60 + endM;
+                        const currentMinutes = now.getHours() * 60 + now.getMinutes();
+                        const isPastShift = isToday && currentMinutes >= shiftEndMinutes;
+                        
+                        const isAvailable = hasSlots && !isPastShift;
+                        const statusText = isPastShift ? 'encerrado' : (hasSlots ? 'vagas' : 'lotado');
                         
                         return (
                           <button
@@ -617,7 +628,7 @@ const PublicBooking = () => {
                                   </div>
                                 )}
                                 <p className="text-xs text-muted-foreground">
-                                  {isAvailable ? 'vagas' : 'lotado'}
+                                  {statusText}
                                 </p>
                               </div>
                             </div>
