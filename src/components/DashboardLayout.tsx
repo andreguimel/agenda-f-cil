@@ -81,6 +81,7 @@ const DashboardLayout = () => {
   const [newSlug, setNewSlug] = useState('');
   const [savingSlug, setSavingSlug] = useState(false);
   const [hasArrivalOrderProfessional, setHasArrivalOrderProfessional] = useState(false);
+  const [todayAppointmentsCount, setTodayAppointmentsCount] = useState(0);
   
   const { subscription, getDaysRemaining } = useSubscription(clinic?.id || null);
   const { isAdmin } = useAdmin();
@@ -129,6 +130,25 @@ const DashboardLayout = () => {
     }
   }, [user]);
 
+  // Load today's appointments count
+  const loadTodayAppointmentsCount = async () => {
+    if (!clinic?.id) return;
+    
+    const today = new Date().toISOString().split('T')[0];
+    const { count } = await supabase
+      .from('appointments')
+      .select('*', { count: 'exact', head: true })
+      .eq('clinic_id', clinic.id)
+      .eq('date', today)
+      .neq('status', 'cancelled');
+    
+    setTodayAppointmentsCount(count || 0);
+  };
+
+  useEffect(() => {
+    loadTodayAppointmentsCount();
+  }, [clinic?.id]);
+
   // Realtime subscription for new appointments
   useEffect(() => {
     if (!clinic?.id) return;
@@ -149,6 +169,21 @@ const DashboardLayout = () => {
             description: `${newAppointment.patient_name} agendou para ${new Date(newAppointment.date).toLocaleDateString('pt-BR')} às ${newAppointment.time?.slice(0, 5)}`,
             duration: 5000,
           });
+          // Refresh today's count
+          loadTodayAppointmentsCount();
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'appointments',
+          filter: `clinic_id=eq.${clinic.id}`
+        },
+        () => {
+          // Refresh count on any change
+          loadTodayAppointmentsCount();
         }
       )
       .subscribe();
@@ -259,7 +294,21 @@ const DashboardLayout = () => {
                 <SidebarItem icon={<Home className="w-5 h-5" />} label="Dashboard" active={isActive('/painel')} />
               </Link>
               <Link to="/painel/agendamentos" onClick={() => setSidebarOpen(false)}>
-                <SidebarItem icon={<CalendarDays className="w-5 h-5" />} label="Agendamentos" active={isActive('/painel/agendamentos')} />
+                <div className={`flex items-center justify-between px-3 py-2.5 rounded-lg transition-all cursor-pointer ${
+                  isActive('/painel/agendamentos') 
+                    ? 'bg-primary/10 text-primary font-medium' 
+                    : 'text-muted-foreground hover:bg-secondary hover:text-foreground'
+                }`}>
+                  <div className="flex items-center gap-3">
+                    <CalendarDays className="w-5 h-5" />
+                    <span className="text-sm">Agendamentos</span>
+                  </div>
+                  {todayAppointmentsCount > 0 && (
+                    <span className="bg-primary text-primary-foreground text-xs font-medium px-2 py-0.5 rounded-full min-w-[20px] text-center">
+                      {todayAppointmentsCount}
+                    </span>
+                  )}
+                </div>
               </Link>
               <Link to="/painel/historico" onClick={() => setSidebarOpen(false)}>
                 <SidebarItem icon={<History className="w-5 h-5" />} label="Histórico" active={isActive('/painel/historico')} />
