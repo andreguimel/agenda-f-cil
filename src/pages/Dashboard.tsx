@@ -11,7 +11,8 @@ import {
   TrendingUp,
   UserCheck,
   XCircle,
-  ArrowRight
+  ArrowRight,
+  Building2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Link, useOutletContext } from 'react-router-dom';
@@ -191,11 +192,11 @@ const Dashboard = () => {
                 <ArrowRight className="w-4 h-4 text-muted-foreground" />
               </div>
             </Link>
-            <Link to="/painel/fila" className="block">
+            <Link to="/painel/configuracoes" className="block">
               <div className="flex items-center justify-between p-3 rounded-lg bg-secondary hover:bg-secondary/80 transition-colors">
                 <div className="flex items-center gap-3">
-                  <Users className="w-5 h-5 text-primary" />
-                  <span className="font-medium">Fila do Dia</span>
+                  <Building2 className="w-5 h-5 text-primary" />
+                  <span className="font-medium">Dados da Clínica</span>
                 </div>
                 <ArrowRight className="w-4 h-4 text-muted-foreground" />
               </div>
