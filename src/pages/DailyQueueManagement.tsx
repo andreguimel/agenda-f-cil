@@ -104,7 +104,7 @@ const DailyQueueManagement = () => {
     }
     
     toast({
-      title: 'Paciente chegou!',
+      title: 'Cliente chegou!',
       description: `${appointment.patient_name} - Posição #${queuePosition}`,
     });
     
@@ -124,7 +124,7 @@ const DailyQueueManagement = () => {
     }
     
     toast({
-      title: 'Paciente atendido!',
+      title: 'Cliente atendido!',
       description: `${appointment.patient_name} foi marcado como atendido`,
     });
     

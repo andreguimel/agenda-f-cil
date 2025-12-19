@@ -132,7 +132,7 @@ const DashboardLayout = () => {
     setLinkCopied(true);
     toast({
       title: 'Link copiado!',
-      description: 'Compartilhe com seus pacientes',
+      description: 'Compartilhe com seus clientes',
     });
     setTimeout(() => setLinkCopied(false), 2000);
   };
@@ -233,7 +233,7 @@ const DashboardLayout = () => {
                 <SidebarItem icon={<History className="w-5 h-5" />} label="Histórico" active={isActive('/painel/historico')} />
               </Link>
               <Link to="/painel/pacientes" onClick={() => setSidebarOpen(false)}>
-                <SidebarItem icon={<Users2 className="w-5 h-5" />} label="Pacientes" active={isActive('/painel/pacientes')} />
+                <SidebarItem icon={<Users2 className="w-5 h-5" />} label="Clientes" active={isActive('/painel/pacientes')} />
               </Link>
               {hasArrivalOrderProfessional && (
                 <Link to="/painel/fila" onClick={() => setSidebarOpen(false)}>

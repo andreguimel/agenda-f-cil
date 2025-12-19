@@ -139,8 +139,8 @@ const AppointmentsPage = () => {
       prev.map(apt => apt.id === id ? { ...apt, status: 'cancelled' } : apt)
     );
     toast({
-      title: 'Consulta cancelada',
-      description: 'O paciente será notificado',
+      title: 'Agendamento cancelado',
+      description: 'O cliente será notificado',
     });
   };
 
@@ -150,7 +150,7 @@ const AppointmentsPage = () => {
     if (error || !data) {
       toast({
         title: 'Erro',
-        description: 'Não foi possível marcar a chegada do paciente',
+        description: 'Não foi possível marcar a chegada do cliente',
         variant: 'destructive',
       });
       return;
@@ -160,7 +160,7 @@ const AppointmentsPage = () => {
       prev.map(apt => apt.id === id ? { ...apt, status: 'confirmed', queue_position: queuePosition } : apt)
     );
     toast({
-      title: 'Paciente na fila',
+      title: 'Cliente na fila',
       description: `Posição na fila: ${queuePosition}º`,
     });
   };
@@ -425,9 +425,9 @@ const AppointmentCard = ({ appointment, onCancel, onMarkArrived, showDate }: App
             
             <AlertDialogContent>
               <AlertDialogHeader>
-                <AlertDialogTitle>Cancelar consulta?</AlertDialogTitle>
+                <AlertDialogTitle>Cancelar agendamento?</AlertDialogTitle>
                 <AlertDialogDescription>
-                  Esta ação irá cancelar a consulta de <strong>{appointment.patient_name}</strong> e 
+                  Esta ação irá cancelar o agendamento de <strong>{appointment.patient_name}</strong> e 
                   remover o evento do Google Calendar. Esta ação não pode ser desfeita.
                 </AlertDialogDescription>
               </AlertDialogHeader>

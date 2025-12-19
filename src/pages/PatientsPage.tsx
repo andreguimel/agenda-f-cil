@@ -160,10 +160,10 @@ const PatientsPage = () => {
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
           <Users className="w-6 h-6" />
-          Pacientes
+          Clientes
         </h1>
         <p className="text-muted-foreground mt-1">
-          Gerencie os pacientes da clínica
+          Gerencie os clientes cadastrados
         </p>
       </div>
 
@@ -189,7 +189,7 @@ const PatientsPage = () => {
             </div>
             <div>
               <p className="text-2xl font-bold text-foreground">{patients.length}</p>
-              <p className="text-sm text-muted-foreground">Total de Pacientes</p>
+              <p className="text-sm text-muted-foreground">Total de Clientes</p>
             </div>
           </div>
         </div>
@@ -200,7 +200,7 @@ const PatientsPage = () => {
         <div className="text-center py-12 bg-card border border-border rounded-xl">
           <User className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
           <p className="text-muted-foreground">
-            {searchTerm ? 'Nenhum paciente encontrado' : 'Nenhum paciente cadastrado ainda'}
+            {searchTerm ? 'Nenhum cliente encontrado' : 'Nenhum cliente cadastrado ainda'}
           </p>
         </div>
       ) : (
