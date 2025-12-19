@@ -24,6 +24,7 @@ export type Database = {
           id: string
           notes: string | null
           patient_email: string
+          patient_id: string | null
           patient_name: string
           patient_phone: string
           professional_id: string
@@ -42,6 +43,7 @@ export type Database = {
           id?: string
           notes?: string | null
           patient_email: string
+          patient_id?: string | null
           patient_name: string
           patient_phone: string
           professional_id: string
@@ -60,6 +62,7 @@ export type Database = {
           id?: string
           notes?: string | null
           patient_email?: string
+          patient_id?: string | null
           patient_name?: string
           patient_phone?: string
           professional_id?: string
@@ -75,6 +78,13 @@ export type Database = {
             columns: ["clinic_id"]
             isOneToOne: false
             referencedRelation: "clinics"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "appointments_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
             referencedColumns: ["id"]
           },
           {
@@ -234,6 +244,47 @@ export type Database = {
             foreignKeyName: "google_calendar_tokens_clinic_id_fkey"
             columns: ["clinic_id"]
             isOneToOne: true
+            referencedRelation: "clinics"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      patients: {
+        Row: {
+          clinic_id: string
+          created_at: string
+          email: string | null
+          id: string
+          name: string
+          notes: string | null
+          phone: string
+          updated_at: string
+        }
+        Insert: {
+          clinic_id: string
+          created_at?: string
+          email?: string | null
+          id?: string
+          name: string
+          notes?: string | null
+          phone: string
+          updated_at?: string
+        }
+        Update: {
+          clinic_id?: string
+          created_at?: string
+          email?: string | null
+          id?: string
+          name?: string
+          notes?: string | null
+          phone?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "patients_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
             referencedRelation: "clinics"
             referencedColumns: ["id"]
           },
@@ -480,6 +531,15 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      upsert_patient: {
+        Args: {
+          p_clinic_id: string
+          p_email: string
+          p_name: string
+          p_phone: string
+        }
+        Returns: string
       }
     }
     Enums: {
