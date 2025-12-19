@@ -284,8 +284,16 @@ const LandingPage = () => {
               </div>
               <span className="font-semibold text-foreground">Agendaberta</span>
             </div>
+            <div className="flex items-center gap-6 text-sm text-muted-foreground">
+              <Link to="/privacidade" className="hover:text-primary transition-colors">
+                Privacidade
+              </Link>
+              <Link to="/termos" className="hover:text-primary transition-colors">
+                Termos de Serviço
+              </Link>
+            </div>
             <p className="text-sm text-muted-foreground">
-              © 2024 Agendaberta. Simplifique seus agendamentos.
+              © 2024 Agendaberta. Todos os direitos reservados.
             </p>
           </div>
         </div>
