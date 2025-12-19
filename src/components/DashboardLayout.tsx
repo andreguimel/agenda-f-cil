@@ -21,11 +21,13 @@ import {
   BookOpen,
   Shield,
   Users2,
-  History
+  History,
+  Bell
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
+import { toast as sonnerToast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import {
   Sheet,
@@ -45,6 +47,7 @@ import {
 import { GoogleCalendarConnect } from '@/components/GoogleCalendarConnect';
 import { useSubscription } from '@/hooks/useSubscription';
 import { useAdmin } from '@/hooks/useAdmin';
+import { supabase } from '@/integrations/supabase/client';
 
 const DEMO_CLINIC_ID = '550e8400-e29b-41d4-a716-446655440000';
 
@@ -125,6 +128,35 @@ const DashboardLayout = () => {
       loadData();
     }
   }, [user]);
+
+  // Realtime subscription for new appointments
+  useEffect(() => {
+    if (!clinic?.id) return;
+
+    const channel = supabase
+      .channel('new-appointments')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'appointments',
+          filter: `clinic_id=eq.${clinic.id}`
+        },
+        (payload) => {
+          const newAppointment = payload.new as { patient_name: string; date: string; time: string };
+          sonnerToast.success('Novo agendamento!', {
+            description: `${newAppointment.patient_name} agendou para ${new Date(newAppointment.date).toLocaleDateString('pt-BR')} às ${newAppointment.time?.slice(0, 5)}`,
+            duration: 5000,
+          });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [clinic?.id]);
 
   const handleCopyLink = () => {
     const slug = clinic?.slug || 'clinica-demo';
