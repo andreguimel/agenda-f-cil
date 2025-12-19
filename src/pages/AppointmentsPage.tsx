@@ -205,11 +205,11 @@ const AppointmentsPage = () => {
         {/* Today */}
         {todayAppointments.length > 0 && (
           <section>
-            <h2 className="text-lg font-semibold text-foreground mb-3 flex items-center gap-2">
+            <h2 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-primary animate-pulse-soft" />
-              Hoje
+              Hoje ({todayAppointments.length})
             </h2>
-            <div className="space-y-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2">
               {todayAppointments.map(apt => (
                 <AppointmentCard 
                   key={apt.id} 
@@ -225,8 +225,8 @@ const AppointmentsPage = () => {
         {/* Upcoming */}
         {upcomingAppointments.length > 0 && (
           <section>
-            <h2 className="text-lg font-semibold text-foreground mb-3">Próximos</h2>
-            <div className="space-y-3">
+            <h2 className="text-sm font-semibold text-foreground mb-3">Próximos ({upcomingAppointments.length})</h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2">
               {upcomingAppointments.map(apt => (
                 <AppointmentCard 
                   key={apt.id} 
@@ -277,52 +277,56 @@ const AppointmentCard = ({ appointment, onCancel, onMarkArrived, showDate }: App
   };
 
   return (
-    <div className="bg-card rounded-xl border border-border p-4 hover:shadow-md transition-all">
-      <div className="flex items-start justify-between">
-        <div className="flex items-start gap-4">
-          <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-            <User className="w-5 h-5 text-primary" />
-          </div>
-          <div>
-            <h3 className="font-semibold text-foreground">{appointment.patient_name}</h3>
-            <p className="text-sm text-muted-foreground">{professionalName}</p>
-            <div className="flex flex-wrap items-center gap-3 mt-2 text-sm text-muted-foreground">
-              {showDate && (
-                <span className="flex items-center gap-1">
-                  <Calendar className="w-4 h-4" />
-                  {formatDate(appointment.date)}
-                </span>
-              )}
-              {isArrivalOrder ? (
-                <>
-                  <span className="flex items-center gap-1">
-                    <Clock className="w-4 h-4" />
-                    {SHIFT_LABELS[appointment.shift_name!] || appointment.shift_name}
-                  </span>
-                  {appointment.queue_position && (
-                    <span className="flex items-center gap-1 text-primary font-medium">
-                      Fila: {appointment.queue_position}º
-                    </span>
-                  )}
-                </>
-              ) : (
-                <span className="flex items-center gap-1">
-                  <Clock className="w-4 h-4" />
-                  {appointment.time.substring(0, 5)}
-                </span>
-              )}
+    <div className="bg-card rounded-lg border border-border p-3 hover:shadow-sm transition-all">
+      <div className="flex items-start justify-between gap-2">
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+              <User className="w-4 h-4 text-primary" />
             </div>
+            <div className="min-w-0 flex-1">
+              <h3 className="font-medium text-sm text-foreground truncate">{appointment.patient_name}</h3>
+              <p className="text-xs text-muted-foreground truncate">{professionalName}</p>
+            </div>
+          </div>
+          
+          <div className="flex flex-wrap items-center gap-2 mt-2 text-xs text-muted-foreground">
+            {showDate && (
+              <span className="flex items-center gap-1 bg-secondary px-1.5 py-0.5 rounded">
+                <Calendar className="w-3 h-3" />
+                {formatDate(appointment.date)}
+              </span>
+            )}
+            {isArrivalOrder ? (
+              <>
+                <span className="flex items-center gap-1 bg-secondary px-1.5 py-0.5 rounded">
+                  <Clock className="w-3 h-3" />
+                  {SHIFT_LABELS[appointment.shift_name!] || appointment.shift_name}
+                </span>
+                {appointment.queue_position && (
+                  <span className="flex items-center gap-1 text-primary font-medium bg-primary/10 px-1.5 py-0.5 rounded">
+                    {appointment.queue_position}º
+                  </span>
+                )}
+              </>
+            ) : (
+              <span className="flex items-center gap-1 bg-secondary px-1.5 py-0.5 rounded">
+                <Clock className="w-3 h-3" />
+                {appointment.time.substring(0, 5)}
+              </span>
+            )}
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1 flex-shrink-0">
           {isWaitingArrival && (
             <Button 
               variant="default" 
               size="sm"
+              className="h-7 text-xs px-2"
               onClick={() => onMarkArrived(appointment.id)}
             >
-              <Check className="w-4 h-4 mr-1" />
+              <Check className="w-3 h-3 mr-1" />
               Chegou
             </Button>
           )}
@@ -330,26 +334,26 @@ const AppointmentCard = ({ appointment, onCancel, onMarkArrived, showDate }: App
           <AlertDialog>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon">
+                <Button variant="ghost" size="icon" className="h-7 w-7">
                   <MoreVertical className="w-4 h-4" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuItem className="flex items-center gap-2">
-                  <Phone className="w-4 h-4" />
+                <DropdownMenuItem className="flex items-center gap-2 text-xs">
+                  <Phone className="w-3 h-3" />
                   {appointment.patient_phone}
                 </DropdownMenuItem>
-                <DropdownMenuItem className="flex items-center gap-2">
-                  <Mail className="w-4 h-4" />
+                <DropdownMenuItem className="flex items-center gap-2 text-xs">
+                  <Mail className="w-3 h-3" />
                   {appointment.patient_email}
                 </DropdownMenuItem>
                 <AlertDialogTrigger asChild>
                   <DropdownMenuItem 
-                    className="flex items-center gap-2 text-destructive"
+                    className="flex items-center gap-2 text-destructive text-xs"
                     onSelect={(e) => e.preventDefault()}
                   >
-                    <XCircle className="w-4 h-4" />
-                    Cancelar Consulta
+                    <XCircle className="w-3 h-3" />
+                    Cancelar
                   </DropdownMenuItem>
                 </AlertDialogTrigger>
               </DropdownMenuContent>
