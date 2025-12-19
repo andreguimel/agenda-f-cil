@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Calendar, Mail, Lock, User, ArrowLeft, Eye, EyeOff } from 'lucide-react';
+import NotARobotCheck from '@/components/NotARobotCheck';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -14,6 +15,12 @@ const AuthPage = () => {
   const [fullName, setFullName] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isHumanVerified, setIsHumanVerified] = useState(false);
+
+  // Reset verification when switching between login and signup
+  useEffect(() => {
+    setIsHumanVerified(false);
+  }, [isLogin]);
   
   const { signIn, signUp } = useAuth();
   const navigate = useNavigate();
@@ -21,6 +28,16 @@ const AuthPage = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!isHumanVerified) {
+      toast({
+        title: 'Verificação necessária',
+        description: 'Por favor, confirme que você não é um robô',
+        variant: 'destructive',
+      });
+      return;
+    }
+    
     setIsLoading(true);
 
     try {
@@ -181,12 +198,18 @@ const AuthPage = () => {
               </div>
             </div>
 
+            <NotARobotCheck
+              checked={isHumanVerified}
+              onChange={setIsHumanVerified}
+              className="mt-6"
+            />
+
             <Button 
               type="submit" 
               variant="hero" 
               size="lg" 
-              className="w-full mt-6"
-              disabled={isLoading}
+              className="w-full mt-4"
+              disabled={isLoading || !isHumanVerified}
             >
               {isLoading 
                 ? (isLogin ? 'Entrando...' : 'Criando conta...') 

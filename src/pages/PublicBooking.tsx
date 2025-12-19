@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { format, addDays, isSameDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Calendar, ChevronLeft, ChevronRight, Clock, User, Mail, Phone, CheckCircle, ArrowLeft, Building2, Loader2, ListOrdered, Users, MapPin, MessageCircle } from 'lucide-react';
+import NotARobotCheck from '@/components/NotARobotCheck';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -55,6 +56,7 @@ const PublicBooking = () => {
   const [formData, setFormData] = useState<BookingFormData>({ name: '', email: '', phone: '' });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [queuePosition, setQueuePosition] = useState<number | null>(null);
+  const [isHumanVerified, setIsHumanVerified] = useState(false);
   
   const [dateOffset, setDateOffset] = useState(0);
   const visibleDates = Array.from({ length: 7 }, (_, i) => addDays(new Date(), dateOffset + i));
@@ -135,6 +137,15 @@ const PublicBooking = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!isHumanVerified) {
+      toast({
+        title: 'Verificação necessária',
+        description: 'Por favor, confirme que você não é um robô',
+        variant: 'destructive',
+      });
+      return;
+    }
     
     if (!formData.name.trim() || !formData.email.trim() || !formData.phone.trim()) {
       toast({
@@ -224,6 +235,7 @@ const PublicBooking = () => {
     setFormData({ name: '', email: '', phone: '' });
     setDateOffset(0);
     setSelectedDate(new Date());
+    setIsHumanVerified(false);
   };
 
   if (loading) {
@@ -652,12 +664,18 @@ const PublicBooking = () => {
                   />
                 </div>
 
+                <NotARobotCheck
+                  checked={isHumanVerified}
+                  onChange={setIsHumanVerified}
+                  className="mt-4"
+                />
+
                 <Button 
                   type="submit" 
                   variant="hero" 
                   size="lg" 
-                  className="w-full mt-6"
-                  disabled={isSubmitting}
+                  className="w-full mt-4"
+                  disabled={isSubmitting || !isHumanVerified}
                 >
                   {isSubmitting ? (
                     <>
