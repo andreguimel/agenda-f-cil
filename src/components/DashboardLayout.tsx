@@ -36,6 +36,7 @@ import {
   getUserProfile,
   linkProfileToClinic,
   updateClinicSlug,
+  fetchProfessionalsByClinic,
   Clinic
 } from '@/services/schedulingService';
 import { GoogleCalendarConnect } from '@/components/GoogleCalendarConnect';
@@ -73,6 +74,7 @@ const DashboardLayout = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [newSlug, setNewSlug] = useState('');
   const [savingSlug, setSavingSlug] = useState(false);
+  const [hasArrivalOrderProfessional, setHasArrivalOrderProfessional] = useState(false);
   
   const { subscription, getDaysRemaining } = useSubscription(clinic?.id || null);
   const { isAdmin } = useAdmin();
@@ -99,11 +101,20 @@ const DashboardLayout = () => {
         clinicId = DEMO_CLINIC_ID;
       }
       
-      const clinicData = await fetchClinicById(clinicId);
+      const [clinicData, professionals] = await Promise.all([
+        fetchClinicById(clinicId),
+        fetchProfessionalsByClinic(clinicId),
+      ]);
+      
       if (clinicData) {
         setClinic(clinicData);
         setNewSlug(clinicData.slug);
       }
+      
+      // Check if any professional uses arrival order mode
+      const hasArrival = professionals.some(p => p.scheduling_mode === 'arrival_order');
+      setHasArrivalOrderProfessional(hasArrival);
+      
       setLoading(false);
     };
 
@@ -215,15 +226,19 @@ const DashboardLayout = () => {
               <Link to="/painel/agendamentos" onClick={() => setSidebarOpen(false)}>
                 <SidebarItem icon={<CalendarDays className="w-5 h-5" />} label="Agendamentos" active={isActive('/painel/agendamentos')} />
               </Link>
-              <Link to="/painel/fila" onClick={() => setSidebarOpen(false)}>
-                <SidebarItem icon={<Users className="w-5 h-5" />} label="Fila do Dia" active={isActive('/painel/fila')} />
-              </Link>
+              {hasArrivalOrderProfessional && (
+                <Link to="/painel/fila" onClick={() => setSidebarOpen(false)}>
+                  <SidebarItem icon={<Users className="w-5 h-5" />} label="Fila do Dia" active={isActive('/painel/fila')} />
+                </Link>
+              )}
               <Link to="/painel/profissionais" onClick={() => setSidebarOpen(false)}>
                 <SidebarItem icon={<User className="w-5 h-5" />} label="Profissionais" active={isActive('/painel/profissionais')} />
               </Link>
-              <Link to="/painel/turnos" onClick={() => setSidebarOpen(false)}>
-                <SidebarItem icon={<ListOrdered className="w-5 h-5" />} label="Turnos" active={isActive('/painel/turnos')} />
-              </Link>
+              {hasArrivalOrderProfessional && (
+                <Link to="/painel/turnos" onClick={() => setSidebarOpen(false)}>
+                  <SidebarItem icon={<ListOrdered className="w-5 h-5" />} label="Turnos" active={isActive('/painel/turnos')} />
+                </Link>
+              )}
               <Link to="/painel/horarios" onClick={() => setSidebarOpen(false)}>
                 <SidebarItem icon={<Clock className="w-5 h-5" />} label="Bloqueios" active={isActive('/painel/horarios')} />
               </Link>
