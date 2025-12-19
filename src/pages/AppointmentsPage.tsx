@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { format, isToday, isTomorrow, parseISO } from 'date-fns';
+import { format, isToday, isTomorrow, parseISO, isSameDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { 
   Calendar, 
@@ -11,13 +11,21 @@ import {
   Phone,
   Mail,
   Check,
-  Loader2
+  Loader2,
+  X
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Link, useOutletContext } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
+import { Calendar as CalendarComponent } from '@/components/ui/calendar';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
+import { cn } from '@/lib/utils';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -60,6 +68,7 @@ const AppointmentsPage = () => {
   
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedProfessional, setSelectedProfessional] = useState<string>('all');
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
 
   // Load data
   useEffect(() => {
@@ -95,18 +104,24 @@ const AppointmentsPage = () => {
     const matchesSearch = apt.patient_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
                           apt.patient_email.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesProfessional = selectedProfessional === 'all' || apt.professional_id === selectedProfessional;
-    return matchesSearch && matchesProfessional && apt.status !== 'cancelled';
+    const aptDate = parseISO(apt.date);
+    const matchesDate = !selectedDate || isSameDay(aptDate, selectedDate);
+    return matchesSearch && matchesProfessional && matchesDate && apt.status !== 'cancelled';
   });
 
-  const todayAppointments = filteredAppointments.filter(apt => {
-    const aptDate = parseISO(apt.date);
-    return isToday(aptDate);
-  });
+  const todayAppointments = selectedDate 
+    ? [] 
+    : filteredAppointments.filter(apt => {
+        const aptDate = parseISO(apt.date);
+        return isToday(aptDate);
+      });
 
-  const upcomingAppointments = filteredAppointments.filter(apt => {
-    const aptDate = parseISO(apt.date);
-    return !isToday(aptDate);
-  });
+  const upcomingAppointments = selectedDate 
+    ? filteredAppointments 
+    : filteredAppointments.filter(apt => {
+        const aptDate = parseISO(apt.date);
+        return !isToday(aptDate);
+      });
 
   const handleCancelAppointment = async (id: string) => {
     const { error } = await updateAppointmentStatus(id, 'cancelled');
@@ -187,6 +202,44 @@ const AppointmentsPage = () => {
               className="pl-9"
             />
           </div>
+          
+          {/* Date Filter */}
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                className={cn(
+                  "justify-start text-left font-normal min-w-[160px]",
+                  !selectedDate && "text-muted-foreground"
+                )}
+              >
+                <Calendar className="mr-2 h-4 w-4" />
+                {selectedDate ? format(selectedDate, "dd/MM/yyyy") : "Filtrar data"}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <CalendarComponent
+                mode="single"
+                selected={selectedDate}
+                onSelect={setSelectedDate}
+                initialFocus
+                locale={ptBR}
+                className={cn("p-3 pointer-events-auto")}
+              />
+            </PopoverContent>
+          </Popover>
+          
+          {selectedDate && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setSelectedDate(undefined)}
+              className="h-10 w-10"
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          )}
+          
           <select
             value={selectedProfessional}
             onChange={(e) => setSelectedProfessional(e.target.value)}
@@ -222,10 +275,15 @@ const AppointmentsPage = () => {
           </section>
         )}
 
-        {/* Upcoming */}
+        {/* Upcoming or Selected Date */}
         {upcomingAppointments.length > 0 && (
           <section>
-            <h2 className="text-sm font-semibold text-foreground mb-3">Próximos ({upcomingAppointments.length})</h2>
+            <h2 className="text-sm font-semibold text-foreground mb-3">
+              {selectedDate 
+                ? `${format(selectedDate, "d 'de' MMMM", { locale: ptBR })} (${upcomingAppointments.length})`
+                : `Próximos (${upcomingAppointments.length})`
+              }
+            </h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2">
               {upcomingAppointments.map(apt => (
                 <AppointmentCard 
