@@ -161,7 +161,7 @@ const Dashboard = () => {
           icon={<Users className="w-4 h-4" />}
         />
         <QuickStat 
-          label="Pacientes Confirmados" 
+          label="Clientes Confirmados" 
           value={confirmedCount}
           icon={<UserCheck className="w-4 h-4" />}
         />

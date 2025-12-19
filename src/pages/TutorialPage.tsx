@@ -50,8 +50,8 @@ const TutorialPage = () => {
             <div>
               <h3 className="font-semibold text-lg">Visão Geral</h3>
               <p className="text-muted-foreground mt-1">
-                Este sistema permite gerenciar agendamentos da sua clínica de forma simples e eficiente. 
-                Seus pacientes podem agendar consultas online através de um link personalizado, 
+                Este sistema permite gerenciar agendamentos de forma simples e eficiente. 
+                Seus clientes podem agendar online através de um link personalizado, 
                 e você gerencia tudo pelo painel administrativo.
               </p>
             </div>
@@ -76,7 +76,7 @@ const TutorialPage = () => {
           <AccordionContent className="pt-4 pb-6">
             <div className="space-y-4">
               <p className="text-muted-foreground">
-                O Dashboard é sua página inicial, onde você tem uma visão completa do que está acontecendo na sua clínica.
+                O Dashboard é sua página inicial, onde você tem uma visão completa do que está acontecendo.
               </p>
               
               <div className="space-y-3">
@@ -85,10 +85,10 @@ const TutorialPage = () => {
                   Cards de Estatísticas
                 </h4>
                 <ul className="list-disc list-inside text-muted-foreground space-y-1 ml-6">
-                  <li><strong>Agendamentos Hoje:</strong> Total de consultas marcadas para hoje</li>
-                  <li><strong>Agendamentos Semana:</strong> Total de consultas dos próximos 7 dias</li>
-                  <li><strong>Agendamentos Mês:</strong> Total de consultas dos últimos 30 dias</li>
-                  <li><strong>Taxa de Confirmação:</strong> Porcentagem de consultas confirmadas</li>
+                  <li><strong>Agendamentos Hoje:</strong> Total de atendimentos marcados para hoje</li>
+                  <li><strong>Agendamentos Semana:</strong> Total de atendimentos dos próximos 7 dias</li>
+                  <li><strong>Agendamentos Mês:</strong> Total de atendimentos dos últimos 30 dias</li>
+                  <li><strong>Taxa de Confirmação:</strong> Porcentagem de atendimentos confirmados</li>
                 </ul>
               </div>
 
@@ -156,7 +156,7 @@ const TutorialPage = () => {
                     <CardContent className="pt-4">
                       <h5 className="font-medium">Por Horário Específico</h5>
                       <p className="text-sm text-muted-foreground mt-1">
-                        O paciente escolhe um horário exato (ex: 14:30). Ideal para consultas com duração fixa.
+                        O cliente escolhe um horário exato (ex: 14:30). Ideal para atendimentos com duração fixa.
                       </p>
                     </CardContent>
                   </Card>
@@ -164,8 +164,8 @@ const TutorialPage = () => {
                     <CardContent className="pt-4">
                       <h5 className="font-medium">Por Ordem de Chegada</h5>
                       <p className="text-sm text-muted-foreground mt-1">
-                        O paciente escolhe um turno (manhã, tarde, noite) e é atendido por ordem de chegada. 
-                        Ideal para clínicas com alta demanda.
+                        O cliente escolhe um turno (manhã, tarde, noite) e é atendido por ordem de chegada. 
+                        Ideal para estabelecimentos com alta demanda.
                       </p>
                     </CardContent>
                   </Card>
@@ -178,8 +178,8 @@ const TutorialPage = () => {
                   Dias de Antecedência
                 </h4>
                 <p className="text-muted-foreground ml-6">
-                  Defina quantos dias no futuro os pacientes podem agendar. Por exemplo, se definir 30 dias, 
-                  pacientes só poderão agendar consultas para os próximos 30 dias.
+                  Defina quantos dias no futuro os clientes podem agendar. Por exemplo, se definir 30 dias, 
+                  clientes só poderão agendar atendimentos para os próximos 30 dias.
                 </p>
               </div>
 
@@ -202,14 +202,14 @@ const TutorialPage = () => {
               </div>
               <div className="text-left">
                 <h3 className="font-semibold">Gerenciando Agendamentos</h3>
-                <p className="text-sm text-muted-foreground">Visualize e gerencie consultas</p>
+                <p className="text-sm text-muted-foreground">Visualize e gerencie atendimentos</p>
               </div>
             </div>
           </AccordionTrigger>
           <AccordionContent className="pt-4 pb-6">
             <div className="space-y-4">
               <p className="text-muted-foreground">
-                Visualize todos os agendamentos, filtre por data ou status, e gerencie as consultas.
+                Visualize todos os agendamentos, filtre por data ou status, e gerencie os atendimentos.
               </p>
 
               <div className="space-y-3">
@@ -250,7 +250,7 @@ const TutorialPage = () => {
                 <ul className="list-disc list-inside text-muted-foreground space-y-1 ml-6">
                   <li><strong>Confirmar:</strong> Marca o agendamento como confirmado</li>
                   <li><strong>Cancelar:</strong> Cancela o agendamento</li>
-                  <li><strong>Ver Detalhes:</strong> Visualize informações completas do paciente</li>
+                  <li><strong>Ver Detalhes:</strong> Visualize informações completas do cliente</li>
                 </ul>
               </div>
 
@@ -290,7 +290,7 @@ const TutorialPage = () => {
               </Card>
 
               <p className="text-muted-foreground">
-                Turnos definem os períodos em que os pacientes podem se inscrever (manhã, tarde, noite) 
+                Turnos definem os períodos em que os clientes podem se inscrever (manhã, tarde, noite) 
                 e quantas vagas estão disponíveis em cada período.
               </p>
 
@@ -397,7 +397,7 @@ const TutorialPage = () => {
                 <Building2 className="w-5 h-5 text-purple-500" />
               </div>
               <div className="text-left">
-                <h3 className="font-semibold">Dados da Clínica</h3>
+                <h3 className="font-semibold">Dados do Estabelecimento</h3>
                 <p className="text-sm text-muted-foreground">Informações e configurações gerais</p>
               </div>
             </div>
@@ -405,7 +405,7 @@ const TutorialPage = () => {
           <AccordionContent className="pt-4 pb-6">
             <div className="space-y-4">
               <p className="text-muted-foreground">
-                Configure as informações da sua clínica que serão exibidas para os pacientes.
+                Configure as informações que serão exibidas para os clientes.
               </p>
 
               <div className="space-y-3">
@@ -414,10 +414,10 @@ const TutorialPage = () => {
                   Informações Editáveis
                 </h4>
                 <ul className="list-disc list-inside text-muted-foreground space-y-1 ml-6">
-                  <li><strong>Nome da Clínica:</strong> Nome que aparece para os pacientes</li>
+                  <li><strong>Nome:</strong> Nome que aparece para os clientes</li>
                   <li><strong>Telefone:</strong> Número para contato</li>
                   <li><strong>E-mail:</strong> E-mail de contato</li>
-                  <li><strong>Endereço:</strong> Localização da clínica</li>
+                  <li><strong>Endereço:</strong> Localização</li>
                   <li><strong>Horário de Funcionamento:</strong> Horário de abertura e fechamento</li>
                 </ul>
               </div>
@@ -425,7 +425,7 @@ const TutorialPage = () => {
               <Link to="/painel/configuracoes">
                 <Button variant="outline" size="sm" className="mt-2">
                   <ArrowRight className="w-4 h-4 mr-2" />
-                  Ir para Dados da Clínica
+                  Ir para Configurações
                 </Button>
               </Link>
             </div>
@@ -441,14 +441,14 @@ const TutorialPage = () => {
               </div>
               <div className="text-left">
                 <h3 className="font-semibold">Link de Agendamento Público</h3>
-                <p className="text-sm text-muted-foreground">Compartilhe com seus pacientes</p>
+                <p className="text-sm text-muted-foreground">Compartilhe com seus clientes</p>
               </div>
             </div>
           </AccordionTrigger>
           <AccordionContent className="pt-4 pb-6">
             <div className="space-y-4">
               <p className="text-muted-foreground">
-                Cada clínica tem um link único que pode ser compartilhado com os pacientes para 
+                Cada estabelecimento tem um link único que pode ser compartilhado com os clientes para 
                 agendamento online.
               </p>
 
@@ -482,7 +482,7 @@ const TutorialPage = () => {
                   Personalizando o Link
                 </h4>
                 <p className="text-muted-foreground ml-6">
-                  Você pode personalizar o "slug" (identificador) da sua clínica clicando no ícone de 
+                  Você pode personalizar o "slug" (identificador) clicando no ícone de 
                   edição ao lado do link. Use um nome fácil de lembrar e digitar.
                 </p>
               </div>
@@ -491,7 +491,7 @@ const TutorialPage = () => {
                 <CardContent className="pt-4">
                   <p className="text-sm text-muted-foreground">
                     <strong>Dica:</strong> Adicione o link de agendamento na bio do Instagram, 
-                    no cartão de visitas, ou crie um QR Code para facilitar o acesso dos pacientes.
+                    no cartão de visitas, ou crie um QR Code para facilitar o acesso dos clientes.
                   </p>
                 </CardContent>
               </Card>

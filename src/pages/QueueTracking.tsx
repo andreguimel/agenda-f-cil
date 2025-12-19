@@ -128,12 +128,12 @@ const QueueTracking = () => {
                           {SHIFT_LABELS[shiftName] || shiftName}
                         </span>
                         <span className="text-sm text-muted-foreground">
-                          ({appointments.length} paciente{appointments.length !== 1 ? 's' : ''})
+                          ({appointments.length} cliente{appointments.length !== 1 ? 's' : ''})
                         </span>
                       </div>
                       
                       {appointments.length === 0 ? (
-                        <p className="text-sm text-muted-foreground pl-6">Nenhum paciente na fila</p>
+                        <p className="text-sm text-muted-foreground pl-6">Nenhum cliente na fila</p>
                       ) : (
                         <div className="space-y-2 pl-6">
                           {appointments.map((apt, idx) => (
