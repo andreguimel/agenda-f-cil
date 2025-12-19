@@ -8,6 +8,7 @@ import LandingPage from "./pages/LandingPage";
 import PublicBooking from "./pages/PublicBooking";
 import QueueTracking from "./pages/QueueTracking";
 import Dashboard from "./pages/Dashboard";
+import AppointmentsPage from "./pages/AppointmentsPage";
 import ProfessionalsManagement from "./pages/ProfessionalsManagement";
 import BlockedTimesManagement from "./pages/BlockedTimesManagement";
 import ShiftsManagement from "./pages/ShiftsManagement";
@@ -50,6 +51,7 @@ const App = () => (
               </SubscriptionGuard>
             }>
               <Route index element={<Dashboard />} />
+              <Route path="agendamentos" element={<AppointmentsPage />} />
               <Route path="profissionais" element={<ProfessionalsManagement />} />
               <Route path="turnos" element={<ShiftsManagement />} />
               <Route path="fila" element={<DailyQueueManagement />} />

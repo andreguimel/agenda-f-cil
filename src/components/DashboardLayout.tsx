@@ -210,7 +210,10 @@ const DashboardLayout = () => {
           <nav className="flex-1 p-4">
             <div className="space-y-1">
               <Link to="/painel" onClick={() => setSidebarOpen(false)}>
-                <SidebarItem icon={<CalendarDays className="w-5 h-5" />} label="Agendamentos" active={isActive('/painel')} />
+                <SidebarItem icon={<Home className="w-5 h-5" />} label="Dashboard" active={isActive('/painel')} />
+              </Link>
+              <Link to="/painel/agendamentos" onClick={() => setSidebarOpen(false)}>
+                <SidebarItem icon={<CalendarDays className="w-5 h-5" />} label="Agendamentos" active={isActive('/painel/agendamentos')} />
               </Link>
               <Link to="/painel/fila" onClick={() => setSidebarOpen(false)}>
                 <SidebarItem icon={<Users className="w-5 h-5" />} label="Fila do Dia" active={isActive('/painel/fila')} />
