@@ -17,6 +17,8 @@ import ClinicSettings from "./pages/ClinicSettings";
 import AuthPage from "./pages/AuthPage";
 import NotFound from "./pages/NotFound";
 import TutorialPage from "./pages/TutorialPage";
+import PatientsPage from "./pages/PatientsPage";
+import AppointmentHistoryPage from "./pages/AppointmentHistoryPage";
 import DashboardLayout from "./components/DashboardLayout";
 import SubscriptionPage from "./pages/SubscriptionPage";
 import CancelSubscriptionPage from "./pages/CancelSubscriptionPage";
@@ -55,6 +57,8 @@ const App = () => (
             }>
               <Route index element={<Dashboard />} />
               <Route path="agendamentos" element={<AppointmentsPage />} />
+              <Route path="historico" element={<AppointmentHistoryPage />} />
+              <Route path="pacientes" element={<PatientsPage />} />
               <Route path="profissionais" element={<ProfessionalsManagement />} />
               <Route path="turnos" element={<ShiftsManagement />} />
               <Route path="fila" element={<DailyQueueManagement />} />

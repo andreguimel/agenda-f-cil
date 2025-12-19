@@ -65,6 +65,19 @@ export interface BlockedTime {
   google_event_id?: string | null;
 }
 
+export interface Patient {
+  id: string;
+  clinic_id: string;
+  name: string;
+  email: string | null;
+  phone: string;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+  appointment_count?: number;
+  last_appointment?: string;
+}
+
 export interface TimeSlot {
   id: string;
   time: string;
@@ -605,15 +618,46 @@ export const sendAppointmentConfirmationEmail = async (appointmentId: string) =>
   }
 };
 
+// Upsert patient (create or update by phone)
+export const upsertPatient = async (
+  clinicId: string,
+  name: string,
+  email: string,
+  phone: string
+): Promise<string | null> => {
+  const { data, error } = await supabase.rpc('upsert_patient', {
+    p_clinic_id: clinicId,
+    p_name: name,
+    p_email: email,
+    p_phone: phone,
+  });
+
+  if (error) {
+    console.error('Error upserting patient:', error);
+    return null;
+  }
+
+  return data;
+};
+
 // Create appointment
 export const createAppointment = async (
   appointment: Omit<Appointment, 'id' | 'created_at' | 'status' | 'notes' | 'professional'>
 ): Promise<{ data: Appointment | null; error: Error | null }> => {
+  // First, upsert the patient
+  const patientId = await upsertPatient(
+    appointment.clinic_id,
+    appointment.patient_name,
+    appointment.patient_email,
+    appointment.patient_phone
+  );
+
   const { data, error } = await supabase
     .from('appointments')
     .insert({
       ...appointment,
       status: 'confirmed',
+      patient_id: patientId,
     })
     .select()
     .single();
@@ -960,6 +1004,14 @@ export const createAppointmentWithQueue = async (
   // Remove shift_start_time from the data to insert (it's not a column)
   const { shift_start_time, ...appointmentData } = appointment;
   
+  // First, upsert the patient
+  const patientId = await upsertPatient(
+    appointment.clinic_id,
+    appointment.patient_name,
+    appointment.patient_email,
+    appointment.patient_phone
+  );
+  
   const { data, error } = await supabase
     .from('appointments')
     .insert({
@@ -967,6 +1019,7 @@ export const createAppointmentWithQueue = async (
       time, // Use shift start time for correct Google Calendar sync
       status: 'scheduled', // Scheduled but not arrived yet
       queue_position: null, // Position assigned when patient arrives
+      patient_id: patientId,
     })
     .select()
     .single();

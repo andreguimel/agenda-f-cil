@@ -19,7 +19,9 @@ import {
   ListOrdered,
   Crown,
   BookOpen,
-  Shield
+  Shield,
+  Users2,
+  History
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -226,6 +228,12 @@ const DashboardLayout = () => {
               </Link>
               <Link to="/painel/agendamentos" onClick={() => setSidebarOpen(false)}>
                 <SidebarItem icon={<CalendarDays className="w-5 h-5" />} label="Agendamentos" active={isActive('/painel/agendamentos')} />
+              </Link>
+              <Link to="/painel/historico" onClick={() => setSidebarOpen(false)}>
+                <SidebarItem icon={<History className="w-5 h-5" />} label="Histórico" active={isActive('/painel/historico')} />
+              </Link>
+              <Link to="/painel/pacientes" onClick={() => setSidebarOpen(false)}>
+                <SidebarItem icon={<Users2 className="w-5 h-5" />} label="Pacientes" active={isActive('/painel/pacientes')} />
               </Link>
               {hasArrivalOrderProfessional && (
                 <Link to="/painel/fila" onClick={() => setSidebarOpen(false)}>
