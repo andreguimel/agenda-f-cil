@@ -69,6 +69,7 @@ interface ProfessionalFormData {
   max_advance_days: number | null;
   scheduling_mode: string;
   show_queue_position: boolean;
+  shift_display_order: string;
   works_saturday: boolean;
   saturday_start_time: string;
   saturday_end_time: string;
@@ -99,6 +100,7 @@ const ProfessionalsManagement = () => {
     max_advance_days: null,
     scheduling_mode: 'time_slots',
     show_queue_position: false,
+    shift_display_order: 'morning_first',
     works_saturday: false,
     saturday_start_time: '08:00',
     saturday_end_time: '12:00',
@@ -148,6 +150,7 @@ const ProfessionalsManagement = () => {
       max_advance_days: null,
       scheduling_mode: 'time_slots',
       show_queue_position: false,
+      shift_display_order: 'morning_first',
       works_saturday: false,
       saturday_start_time: '08:00',
       saturday_end_time: '12:00',
@@ -174,6 +177,7 @@ const ProfessionalsManagement = () => {
         max_advance_days: professional.max_advance_days ?? null,
         scheduling_mode: professional.scheduling_mode || 'time_slots',
         show_queue_position: professional.show_queue_position || false,
+        shift_display_order: (professional as any).shift_display_order || 'morning_first',
         works_saturday: (professional as any).works_saturday || false,
         saturday_start_time: (professional as any).saturday_start_time || '08:00',
         saturday_end_time: (professional as any).saturday_end_time || '12:00',
@@ -221,6 +225,7 @@ const ProfessionalsManagement = () => {
         max_advance_days: formData.max_advance_days,
         scheduling_mode: formData.scheduling_mode,
         show_queue_position: formData.show_queue_position,
+        shift_display_order: formData.shift_display_order,
         works_saturday: formData.works_saturday,
         saturday_start_time: formData.saturday_start_time,
         saturday_end_time: formData.saturday_end_time,
@@ -263,6 +268,7 @@ const ProfessionalsManagement = () => {
         max_advance_days: formData.max_advance_days,
         scheduling_mode: formData.scheduling_mode,
         show_queue_position: formData.show_queue_position,
+        shift_display_order: formData.shift_display_order,
         works_saturday: formData.works_saturday,
         saturday_start_time: formData.saturday_start_time,
         saturday_end_time: formData.saturday_end_time,
@@ -601,16 +607,34 @@ const ProfessionalsManagement = () => {
                     </Select>
 
                     {formData.scheduling_mode === 'arrival_order' && (
-                      <div className="flex items-center gap-2">
-                        <Checkbox
-                          id="show_queue_position"
-                          checked={formData.show_queue_position}
-                          onCheckedChange={(checked) => setFormData(prev => ({ ...prev, show_queue_position: checked === true }))}
-                        />
-                        <Label htmlFor="show_queue_position" className="cursor-pointer text-xs">
-                          Pacientes podem ver posição na fila
-                        </Label>
-                      </div>
+                      <>
+                        <div className="space-y-1">
+                          <Label htmlFor="shift_display_order" className="text-xs">Ordem de exibição dos turnos</Label>
+                          <Select
+                            value={formData.shift_display_order}
+                            onValueChange={(value) => setFormData(prev => ({ ...prev, shift_display_order: value }))}
+                          >
+                            <SelectTrigger className="h-9">
+                              <SelectValue placeholder="Selecione a ordem" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="morning_first">Manhã → Tarde → Noite</SelectItem>
+                              <SelectItem value="afternoon_first">Tarde → Manhã → Noite</SelectItem>
+                              <SelectItem value="evening_first">Noite → Manhã → Tarde</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Checkbox
+                            id="show_queue_position"
+                            checked={formData.show_queue_position}
+                            onCheckedChange={(checked) => setFormData(prev => ({ ...prev, show_queue_position: checked === true }))}
+                          />
+                          <Label htmlFor="show_queue_position" className="cursor-pointer text-xs">
+                            Pacientes podem ver posição na fila
+                          </Label>
+                        </div>
+                      </>
                     )}
                   </div>
                 </div>

@@ -354,6 +354,7 @@ export type Database = {
           saturday_end_time: string | null
           saturday_start_time: string | null
           scheduling_mode: string
+          shift_display_order: string
           show_queue_position: boolean
           specialty: string
           sunday_end_time: string | null
@@ -380,6 +381,7 @@ export type Database = {
           saturday_end_time?: string | null
           saturday_start_time?: string | null
           scheduling_mode?: string
+          shift_display_order?: string
           show_queue_position?: boolean
           specialty: string
           sunday_end_time?: string | null
@@ -406,6 +408,7 @@ export type Database = {
           saturday_end_time?: string | null
           saturday_start_time?: string | null
           scheduling_mode?: string
+          shift_display_order?: string
           show_queue_position?: boolean
           specialty?: string
           sunday_end_time?: string | null
