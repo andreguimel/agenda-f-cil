@@ -81,7 +81,8 @@ const DashboardLayout = () => {
   const [newSlug, setNewSlug] = useState('');
   const [savingSlug, setSavingSlug] = useState(false);
   const [hasArrivalOrderProfessional, setHasArrivalOrderProfessional] = useState(false);
-  const [todayAppointmentsCount, setTodayAppointmentsCount] = useState(0);
+  const [newAppointmentsCount, setNewAppointmentsCount] = useState(0);
+  const [lastSeenAt, setLastSeenAt] = useState<string | null>(null);
   
   const { subscription, getDaysRemaining } = useSubscription(clinic?.id || null);
   const { isAdmin } = useAdmin();
@@ -130,23 +131,34 @@ const DashboardLayout = () => {
     }
   }, [user]);
 
-  // Load today's appointments count
-  const loadTodayAppointmentsCount = async () => {
+  // Load new appointments count (since last seen)
+  const loadNewAppointmentsCount = async () => {
     if (!clinic?.id) return;
     
-    const today = new Date().toISOString().split('T')[0];
+    const storageKey = `lastSeenAppointments_${clinic.id}`;
+    const lastSeen = localStorage.getItem(storageKey) || new Date(0).toISOString();
+    setLastSeenAt(lastSeen);
+    
     const { count } = await supabase
       .from('appointments')
       .select('*', { count: 'exact', head: true })
       .eq('clinic_id', clinic.id)
-      .eq('date', today)
-      .neq('status', 'cancelled');
+      .gt('created_at', lastSeen);
     
-    setTodayAppointmentsCount(count || 0);
+    setNewAppointmentsCount(count || 0);
   };
 
+  // Clear notification when visiting appointments page
   useEffect(() => {
-    loadTodayAppointmentsCount();
+    if (location.pathname === '/painel/agendamentos' && clinic?.id) {
+      const storageKey = `lastSeenAppointments_${clinic.id}`;
+      localStorage.setItem(storageKey, new Date().toISOString());
+      setNewAppointmentsCount(0);
+    }
+  }, [location.pathname, clinic?.id]);
+
+  useEffect(() => {
+    loadNewAppointmentsCount();
   }, [clinic?.id]);
 
   // Realtime subscription for new appointments
@@ -169,21 +181,10 @@ const DashboardLayout = () => {
             description: `${newAppointment.patient_name} agendou para ${new Date(newAppointment.date).toLocaleDateString('pt-BR')} às ${newAppointment.time?.slice(0, 5)}`,
             duration: 5000,
           });
-          // Refresh today's count
-          loadTodayAppointmentsCount();
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'appointments',
-          filter: `clinic_id=eq.${clinic.id}`
-        },
-        () => {
-          // Refresh count on any change
-          loadTodayAppointmentsCount();
+          // Increment count if not on appointments page
+          if (location.pathname !== '/painel/agendamentos') {
+            setNewAppointmentsCount(prev => prev + 1);
+          }
         }
       )
       .subscribe();
@@ -191,7 +192,7 @@ const DashboardLayout = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [clinic?.id]);
+  }, [clinic?.id, location.pathname]);
 
   const handleCopyLink = () => {
     const slug = clinic?.slug || 'clinica-demo';
@@ -303,9 +304,9 @@ const DashboardLayout = () => {
                     <CalendarDays className="w-5 h-5" />
                     <span className="text-sm">Agendamentos</span>
                   </div>
-                  {todayAppointmentsCount > 0 && (
-                    <span className="bg-primary text-primary-foreground text-xs font-medium px-2 py-0.5 rounded-full min-w-[20px] text-center">
-                      {todayAppointmentsCount}
+                  {newAppointmentsCount > 0 && (
+                    <span className="bg-destructive text-destructive-foreground text-xs font-medium px-2 py-0.5 rounded-full min-w-[20px] text-center animate-pulse">
+                      {newAppointmentsCount}
                     </span>
                   )}
                 </div>
