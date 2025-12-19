@@ -581,7 +581,10 @@ const PublicBooking = () => {
                         Nenhum turno disponível para esta data
                       </p>
                     ) : (
-                      shifts.map((shift) => {
+                      [...shifts].sort((a, b) => {
+                        const order: Record<string, number> = { morning: 1, afternoon: 2, evening: 3 };
+                        return (order[a.shift_name] || 99) - (order[b.shift_name] || 99);
+                      }).map((shift) => {
                         const availability = shiftAvailability[shift.shift_name];
                         const isAvailable = availability && availability.available > 0;
                         
