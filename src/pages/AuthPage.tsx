@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { Calendar, Mail, Lock, User, ArrowLeft, Eye, EyeOff } from 'lucide-react';
 import NotARobotCheck from '@/components/NotARobotCheck';
 import { Button } from '@/components/ui/button';
@@ -7,22 +7,36 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
+
+type AuthMode = 'login' | 'signup' | 'forgot' | 'reset';
 
 const AuthPage = () => {
-  const [isLogin, setIsLogin] = useState(true);
+  const [searchParams] = useSearchParams();
+  const [mode, setMode] = useState<AuthMode>('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [fullName, setFullName] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isHumanVerified, setIsHumanVerified] = useState(false);
+  const [resetEmailSent, setResetEmailSent] = useState(false);
 
-  // Reset verification when switching between login and signup
+  // Check URL for reset mode
+  useEffect(() => {
+    if (searchParams.get('mode') === 'reset') {
+      setMode('reset');
+    }
+  }, [searchParams]);
+
+  // Reset verification when switching modes
   useEffect(() => {
     setIsHumanVerified(false);
-  }, [isLogin]);
+    setResetEmailSent(false);
+  }, [mode]);
   
-  const { signIn, signUp } = useAuth();
+  const { signIn, signUp, resetPassword } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -41,7 +55,7 @@ const AuthPage = () => {
     setIsLoading(true);
 
     try {
-      if (isLogin) {
+      if (mode === 'login') {
         const { error } = await signIn(email, password);
         
         if (error) {
@@ -59,7 +73,7 @@ const AuthPage = () => {
           });
           navigate('/painel');
         }
-      } else {
+      } else if (mode === 'signup') {
         if (!fullName.trim()) {
           toast({
             title: 'Nome obrigatório',
@@ -93,6 +107,58 @@ const AuthPage = () => {
           });
           navigate('/painel');
         }
+      } else if (mode === 'forgot') {
+        const { error } = await resetPassword(email);
+        
+        if (error) {
+          toast({
+            title: 'Erro ao enviar email',
+            description: error.message,
+            variant: 'destructive',
+          });
+        } else {
+          setResetEmailSent(true);
+          toast({
+            title: 'Email enviado!',
+            description: 'Verifique sua caixa de entrada para redefinir a senha',
+          });
+        }
+      } else if (mode === 'reset') {
+        if (password !== confirmPassword) {
+          toast({
+            title: 'Senhas não conferem',
+            description: 'As senhas digitadas são diferentes',
+            variant: 'destructive',
+          });
+          setIsLoading(false);
+          return;
+        }
+
+        if (password.length < 6) {
+          toast({
+            title: 'Senha muito curta',
+            description: 'A senha deve ter pelo menos 6 caracteres',
+            variant: 'destructive',
+          });
+          setIsLoading(false);
+          return;
+        }
+
+        const { error } = await supabase.auth.updateUser({ password });
+        
+        if (error) {
+          toast({
+            title: 'Erro ao redefinir senha',
+            description: error.message,
+            variant: 'destructive',
+          });
+        } else {
+          toast({
+            title: 'Senha redefinida!',
+            description: 'Sua nova senha foi salva com sucesso',
+          });
+          navigate('/painel');
+        }
       }
     } catch (error) {
       toast({
@@ -102,6 +168,41 @@ const AuthPage = () => {
       });
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const getTitle = () => {
+    switch (mode) {
+      case 'login': return 'Entrar na sua conta';
+      case 'signup': return 'Criar nova conta';
+      case 'forgot': return 'Esqueci minha senha';
+      case 'reset': return 'Redefinir senha';
+    }
+  };
+
+  const getSubtitle = () => {
+    switch (mode) {
+      case 'login': return 'Acesse o painel de agendamentos';
+      case 'signup': return 'Comece a gerenciar seus agendamentos';
+      case 'forgot': return 'Digite seu email para receber o link de recuperação';
+      case 'reset': return 'Digite sua nova senha';
+    }
+  };
+
+  const getButtonText = () => {
+    if (isLoading) {
+      switch (mode) {
+        case 'login': return 'Entrando...';
+        case 'signup': return 'Criando conta...';
+        case 'forgot': return 'Enviando...';
+        case 'reset': return 'Redefinindo...';
+      }
+    }
+    switch (mode) {
+      case 'login': return 'Entrar';
+      case 'signup': return 'Criar conta';
+      case 'forgot': return 'Enviar email de recuperação';
+      case 'reset': return 'Redefinir senha';
     }
   };
 
@@ -130,106 +231,166 @@ const AuthPage = () => {
 
           <div className="mb-8">
             <h2 className="text-xl font-semibold text-foreground mb-2">
-              {isLogin ? 'Entrar na sua conta' : 'Criar nova conta'}
+              {getTitle()}
             </h2>
             <p className="text-muted-foreground">
-              {isLogin 
-                ? 'Acesse o painel de agendamentos' 
-                : 'Comece a gerenciar seus agendamentos'
-              }
+              {getSubtitle()}
             </p>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {!isLogin && (
-              <div>
-                <Label htmlFor="fullName" className="flex items-center gap-2 mb-2">
-                  <User className="w-4 h-4 text-muted-foreground" />
-                  Nome completo
-                </Label>
-                <Input
-                  id="fullName"
-                  type="text"
-                  placeholder="Seu nome"
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                  required={!isLogin}
-                />
+          {resetEmailSent && mode === 'forgot' ? (
+            <div className="text-center py-8">
+              <div className="w-16 h-16 rounded-full bg-success/10 flex items-center justify-center mx-auto mb-4">
+                <Mail className="w-8 h-8 text-success" />
               </div>
-            )}
-
-            <div>
-              <Label htmlFor="email" className="flex items-center gap-2 mb-2">
-                <Mail className="w-4 h-4 text-muted-foreground" />
-                E-mail
-              </Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="seu@email.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-              />
+              <h3 className="text-lg font-semibold text-foreground mb-2">Email enviado!</h3>
+              <p className="text-muted-foreground mb-6">
+                Verifique sua caixa de entrada e clique no link para redefinir sua senha.
+              </p>
+              <Button 
+                variant="outline" 
+                onClick={() => { setMode('login'); setResetEmailSent(false); }}
+              >
+                Voltar ao login
+              </Button>
             </div>
+          ) : (
+            <form onSubmit={handleSubmit} className="space-y-4">
+              {mode === 'signup' && (
+                <div>
+                  <Label htmlFor="fullName" className="flex items-center gap-2 mb-2">
+                    <User className="w-4 h-4 text-muted-foreground" />
+                    Nome completo
+                  </Label>
+                  <Input
+                    id="fullName"
+                    type="text"
+                    placeholder="Seu nome"
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
+                    required
+                  />
+                </div>
+              )}
 
-            <div>
-              <Label htmlFor="password" className="flex items-center gap-2 mb-2">
-                <Lock className="w-4 h-4 text-muted-foreground" />
-                Senha
-              </Label>
-              <div className="relative">
-                <Input
-                  id="password"
-                  type={showPassword ? 'text' : 'password'}
-                  placeholder="Sua senha"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                  minLength={6}
-                />
+              {(mode === 'login' || mode === 'signup' || mode === 'forgot') && (
+                <div>
+                  <Label htmlFor="email" className="flex items-center gap-2 mb-2">
+                    <Mail className="w-4 h-4 text-muted-foreground" />
+                    E-mail
+                  </Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    placeholder="seu@email.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                  />
+                </div>
+              )}
+
+              {(mode === 'login' || mode === 'signup' || mode === 'reset') && (
+                <div>
+                  <Label htmlFor="password" className="flex items-center gap-2 mb-2">
+                    <Lock className="w-4 h-4 text-muted-foreground" />
+                    {mode === 'reset' ? 'Nova senha' : 'Senha'}
+                  </Label>
+                  <div className="relative">
+                    <Input
+                      id="password"
+                      type={showPassword ? 'text' : 'password'}
+                      placeholder={mode === 'reset' ? 'Digite a nova senha' : 'Sua senha'}
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      required
+                      minLength={6}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {mode === 'reset' && (
+                <div>
+                  <Label htmlFor="confirmPassword" className="flex items-center gap-2 mb-2">
+                    <Lock className="w-4 h-4 text-muted-foreground" />
+                    Confirmar nova senha
+                  </Label>
+                  <Input
+                    id="confirmPassword"
+                    type="password"
+                    placeholder="Confirme a nova senha"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    required
+                    minLength={6}
+                  />
+                </div>
+              )}
+
+              {mode === 'login' && (
+                <div className="text-right">
+                  <button
+                    type="button"
+                    onClick={() => setMode('forgot')}
+                    className="text-sm text-primary hover:underline"
+                  >
+                    Esqueci minha senha
+                  </button>
+                </div>
+              )}
+
+              <NotARobotCheck
+                checked={isHumanVerified}
+                onChange={setIsHumanVerified}
+                className="mt-6"
+              />
+
+              <Button 
+                type="submit" 
+                variant="hero" 
+                size="lg" 
+                className="w-full mt-4"
+                disabled={isLoading || !isHumanVerified}
+              >
+                {getButtonText()}
+              </Button>
+            </form>
+          )}
+
+          {(mode === 'login' || mode === 'signup') && (
+            <div className="mt-6 text-center">
+              <p className="text-sm text-muted-foreground">
+                {mode === 'login' ? 'Não tem uma conta?' : 'Já tem uma conta?'}{' '}
                 <button
                   type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                  onClick={() => setMode(mode === 'login' ? 'signup' : 'login')}
+                  className="text-primary font-medium hover:underline"
                 >
-                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  {mode === 'login' ? 'Criar conta' : 'Entrar'}
                 </button>
-              </div>
+              </p>
             </div>
+          )}
 
-            <NotARobotCheck
-              checked={isHumanVerified}
-              onChange={setIsHumanVerified}
-              className="mt-6"
-            />
-
-            <Button 
-              type="submit" 
-              variant="hero" 
-              size="lg" 
-              className="w-full mt-4"
-              disabled={isLoading || !isHumanVerified}
-            >
-              {isLoading 
-                ? (isLogin ? 'Entrando...' : 'Criando conta...') 
-                : (isLogin ? 'Entrar' : 'Criar conta')
-              }
-            </Button>
-          </form>
-
-          <div className="mt-6 text-center">
-            <p className="text-sm text-muted-foreground">
-              {isLogin ? 'Não tem uma conta?' : 'Já tem uma conta?'}{' '}
+          {(mode === 'forgot' && !resetEmailSent) && (
+            <div className="mt-6 text-center">
               <button
                 type="button"
-                onClick={() => setIsLogin(!isLogin)}
-                className="text-primary font-medium hover:underline"
+                onClick={() => setMode('login')}
+                className="text-sm text-primary font-medium hover:underline"
               >
-                {isLogin ? 'Criar conta' : 'Entrar'}
+                Voltar ao login
               </button>
-            </p>
-          </div>
+            </div>
+          )}
         </div>
       </div>
 
