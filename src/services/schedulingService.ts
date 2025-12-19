@@ -579,6 +579,32 @@ export const generateTimeSlots = async (
   return slots;
 };
 
+// Send appointment confirmation email
+export const sendAppointmentConfirmationEmail = async (appointmentId: string) => {
+  try {
+    console.log('[sendAppointmentConfirmationEmail] Sending confirmation for:', appointmentId);
+    
+    const response = await fetch(
+      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-appointment-confirmation`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ appointmentId }),
+      }
+    );
+
+    const responseData = await response.json();
+    
+    if (!response.ok) {
+      console.log('[sendAppointmentConfirmationEmail] Failed:', responseData);
+    } else {
+      console.log('[sendAppointmentConfirmationEmail] Email sent successfully:', responseData);
+    }
+  } catch (error) {
+    console.error('[sendAppointmentConfirmationEmail] Error:', error);
+  }
+};
+
 // Create appointment
 export const createAppointment = async (
   appointment: Omit<Appointment, 'id' | 'created_at' | 'status' | 'notes' | 'professional'>
@@ -597,9 +623,10 @@ export const createAppointment = async (
     return { data: null, error };
   }
 
-  // Sync with Google Calendar
+  // Sync with Google Calendar and send confirmation email
   if (data) {
     syncAppointmentToGoogleCalendar(data);
+    sendAppointmentConfirmationEmail(data.id);
   }
 
   return { data, error: null };
@@ -949,10 +976,11 @@ export const createAppointmentWithQueue = async (
     return { data: null, error };
   }
 
-  // Sync with Google Calendar
+  // Sync with Google Calendar and send confirmation email
   if (data) {
     console.log('[createAppointmentWithQueue] Appointment created, syncing to Google Calendar...');
     await syncAppointmentToGoogleCalendar(data);
+    sendAppointmentConfirmationEmail(data.id);
   }
 
   return { data, error: null };
