@@ -135,7 +135,7 @@ serve(async (req) => {
       // Create event in Google Calendar
       const { data: professional } = await supabase
         .from('professionals')
-        .select('name, specialty, duration, google_calendar_id')
+        .select('name, specialty, duration, google_calendar_id, scheduling_mode')
         .eq('id', appointment.professional_id)
         .single();
 
@@ -151,14 +151,43 @@ serve(async (req) => {
 
       // Format time properly - appointment.time might be "08:00" or "08:00:00"
       const timeStr = appointment.time.substring(0, 5); // Get "HH:MM"
-      const duration = professional.duration || 30;
+      let endTimeStr: string;
       
-      // Parse hours and minutes
-      const [hours, minutes] = timeStr.split(':').map(Number);
-      const endMinutes = hours * 60 + minutes + duration;
-      const endHours = Math.floor(endMinutes / 60);
-      const endMins = endMinutes % 60;
-      const endTimeStr = `${endHours.toString().padStart(2, '0')}:${endMins.toString().padStart(2, '0')}`;
+      // For shift-based appointments, get the shift end time
+      if (appointment.shift_name && professional.scheduling_mode === 'arrival_order') {
+        const dateObj = new Date(appointment.date + 'T00:00:00');
+        const dayOfWeek = dateObj.getDay();
+        
+        const { data: shift } = await supabase
+          .from('professional_shifts')
+          .select('end_time')
+          .eq('professional_id', appointment.professional_id)
+          .eq('day_of_week', dayOfWeek)
+          .eq('shift_name', appointment.shift_name)
+          .eq('is_active', true)
+          .single();
+        
+        if (shift) {
+          endTimeStr = shift.end_time.substring(0, 5);
+          console.log(`Using shift end time: ${endTimeStr} for shift ${appointment.shift_name}`);
+        } else {
+          // Fallback to duration-based calculation
+          const duration = professional.duration || 30;
+          const [hours, minutes] = timeStr.split(':').map(Number);
+          const endMinutes = hours * 60 + minutes + duration;
+          const endHours = Math.floor(endMinutes / 60);
+          const endMins = endMinutes % 60;
+          endTimeStr = `${endHours.toString().padStart(2, '0')}:${endMins.toString().padStart(2, '0')}`;
+        }
+      } else {
+        // Regular time slot mode - use professional duration
+        const duration = professional.duration || 30;
+        const [hours, minutes] = timeStr.split(':').map(Number);
+        const endMinutes = hours * 60 + minutes + duration;
+        const endHours = Math.floor(endMinutes / 60);
+        const endMins = endMinutes % 60;
+        endTimeStr = `${endHours.toString().padStart(2, '0')}:${endMins.toString().padStart(2, '0')}`;
+      }
 
       const event = {
         summary: `Consulta: ${appointment.patient_name}`,
