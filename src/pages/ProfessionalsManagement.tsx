@@ -69,6 +69,12 @@ interface ProfessionalFormData {
   max_advance_days: number | null;
   scheduling_mode: string;
   show_queue_position: boolean;
+  works_saturday: boolean;
+  saturday_start_time: string;
+  saturday_end_time: string;
+  works_sunday: boolean;
+  sunday_start_time: string;
+  sunday_end_time: string;
 }
 
 const ProfessionalsManagement = () => {
@@ -93,6 +99,12 @@ const ProfessionalsManagement = () => {
     max_advance_days: null,
     scheduling_mode: 'time_slots',
     show_queue_position: false,
+    works_saturday: false,
+    saturday_start_time: '08:00',
+    saturday_end_time: '12:00',
+    works_sunday: false,
+    sunday_start_time: '08:00',
+    sunday_end_time: '12:00',
   });
   const [submitting, setSubmitting] = useState(false);
 
@@ -136,6 +148,12 @@ const ProfessionalsManagement = () => {
       max_advance_days: null,
       scheduling_mode: 'time_slots',
       show_queue_position: false,
+      works_saturday: false,
+      saturday_start_time: '08:00',
+      saturday_end_time: '12:00',
+      works_sunday: false,
+      sunday_start_time: '08:00',
+      sunday_end_time: '12:00',
     });
     setEditingProfessional(null);
   };
@@ -156,6 +174,12 @@ const ProfessionalsManagement = () => {
         max_advance_days: professional.max_advance_days ?? null,
         scheduling_mode: professional.scheduling_mode || 'time_slots',
         show_queue_position: professional.show_queue_position || false,
+        works_saturday: (professional as any).works_saturday || false,
+        saturday_start_time: (professional as any).saturday_start_time || '08:00',
+        saturday_end_time: (professional as any).saturday_end_time || '12:00',
+        works_sunday: (professional as any).works_sunday || false,
+        sunday_start_time: (professional as any).sunday_start_time || '08:00',
+        sunday_end_time: (professional as any).sunday_end_time || '12:00',
       });
     } else {
       resetForm();
@@ -197,7 +221,13 @@ const ProfessionalsManagement = () => {
         max_advance_days: formData.max_advance_days,
         scheduling_mode: formData.scheduling_mode,
         show_queue_position: formData.show_queue_position,
-      });
+        works_saturday: formData.works_saturday,
+        saturday_start_time: formData.saturday_start_time,
+        saturday_end_time: formData.saturday_end_time,
+        works_sunday: formData.works_sunday,
+        sunday_start_time: formData.sunday_start_time,
+        sunday_end_time: formData.sunday_end_time,
+      } as any);
 
       if (error) {
         toast({
@@ -233,7 +263,13 @@ const ProfessionalsManagement = () => {
         max_advance_days: formData.max_advance_days,
         scheduling_mode: formData.scheduling_mode,
         show_queue_position: formData.show_queue_position,
-      });
+        works_saturday: formData.works_saturday,
+        saturday_start_time: formData.saturday_start_time,
+        saturday_end_time: formData.saturday_end_time,
+        works_sunday: formData.works_sunday,
+        sunday_start_time: formData.sunday_start_time,
+        sunday_end_time: formData.sunday_end_time,
+      } as any);
 
       if (error || !data) {
         toast({
@@ -470,6 +506,82 @@ const ProfessionalsManagement = () => {
                       </p>
                     </div>
                   )}
+                </div>
+
+                <div className="border-t border-border pt-3 mt-3">
+                  <h4 className="font-medium text-foreground text-sm mb-2">Dias de Atendimento</h4>
+                  
+                  <div className="space-y-3">
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <Checkbox
+                          id="works_saturday"
+                          checked={formData.works_saturday}
+                          onCheckedChange={(checked) => setFormData(prev => ({ ...prev, works_saturday: checked === true }))}
+                        />
+                        <Label htmlFor="works_saturday" className="cursor-pointer text-sm">Trabalha no sábado</Label>
+                      </div>
+                      {formData.works_saturday && (
+                        <div className="grid grid-cols-2 gap-2 pl-6">
+                          <div className="space-y-1">
+                            <Label htmlFor="saturday_start_time" className="text-xs">Início</Label>
+                            <Input
+                              id="saturday_start_time"
+                              type="time"
+                              className="h-9"
+                              value={formData.saturday_start_time}
+                              onChange={(e) => setFormData(prev => ({ ...prev, saturday_start_time: e.target.value }))}
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <Label htmlFor="saturday_end_time" className="text-xs">Fim</Label>
+                            <Input
+                              id="saturday_end_time"
+                              type="time"
+                              className="h-9"
+                              value={formData.saturday_end_time}
+                              onChange={(e) => setFormData(prev => ({ ...prev, saturday_end_time: e.target.value }))}
+                            />
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <Checkbox
+                          id="works_sunday"
+                          checked={formData.works_sunday}
+                          onCheckedChange={(checked) => setFormData(prev => ({ ...prev, works_sunday: checked === true }))}
+                        />
+                        <Label htmlFor="works_sunday" className="cursor-pointer text-sm">Trabalha no domingo</Label>
+                      </div>
+                      {formData.works_sunday && (
+                        <div className="grid grid-cols-2 gap-2 pl-6">
+                          <div className="space-y-1">
+                            <Label htmlFor="sunday_start_time" className="text-xs">Início</Label>
+                            <Input
+                              id="sunday_start_time"
+                              type="time"
+                              className="h-9"
+                              value={formData.sunday_start_time}
+                              onChange={(e) => setFormData(prev => ({ ...prev, sunday_start_time: e.target.value }))}
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <Label htmlFor="sunday_end_time" className="text-xs">Fim</Label>
+                            <Input
+                              id="sunday_end_time"
+                              type="time"
+                              className="h-9"
+                              value={formData.sunday_end_time}
+                              onChange={(e) => setFormData(prev => ({ ...prev, sunday_end_time: e.target.value }))}
+                            />
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 </div>
 
                 <div className="border-t border-border pt-3 mt-3">
