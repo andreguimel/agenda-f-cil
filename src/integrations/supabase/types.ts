@@ -351,12 +351,18 @@ export type Database = {
           lunch_start_time: string | null
           max_advance_days: number | null
           name: string
+          saturday_end_time: string | null
+          saturday_start_time: string | null
           scheduling_mode: string
           show_queue_position: boolean
           specialty: string
+          sunday_end_time: string | null
+          sunday_start_time: string | null
           updated_at: string
           work_end_time: string | null
           work_start_time: string | null
+          works_saturday: boolean
+          works_sunday: boolean
         }
         Insert: {
           avatar_url?: string | null
@@ -371,12 +377,18 @@ export type Database = {
           lunch_start_time?: string | null
           max_advance_days?: number | null
           name: string
+          saturday_end_time?: string | null
+          saturday_start_time?: string | null
           scheduling_mode?: string
           show_queue_position?: boolean
           specialty: string
+          sunday_end_time?: string | null
+          sunday_start_time?: string | null
           updated_at?: string
           work_end_time?: string | null
           work_start_time?: string | null
+          works_saturday?: boolean
+          works_sunday?: boolean
         }
         Update: {
           avatar_url?: string | null
@@ -391,12 +403,18 @@ export type Database = {
           lunch_start_time?: string | null
           max_advance_days?: number | null
           name?: string
+          saturday_end_time?: string | null
+          saturday_start_time?: string | null
           scheduling_mode?: string
           show_queue_position?: boolean
           specialty?: string
+          sunday_end_time?: string | null
+          sunday_start_time?: string | null
           updated_at?: string
           work_end_time?: string | null
           work_start_time?: string | null
+          works_saturday?: boolean
+          works_sunday?: boolean
         }
         Relationships: [
           {
