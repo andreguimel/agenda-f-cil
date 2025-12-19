@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Link, useParams } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
 import { formatPhone, validatePhone, validateEmail } from '@/lib/masks';
+import { SEO } from '@/components/SEO';
 import { 
   fetchClinicBySlug, 
   fetchProfessionalsByClinic, 
@@ -315,8 +316,14 @@ const PublicBooking = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
+    <>
+      <SEO 
+        title={`Agendar consulta - ${clinic.name}`}
+        description={`Agende sua consulta online na ${clinic.name}. Escolha o profissional, data e horário disponível.`}
+        canonical={`/agendar/${clinicSlug}`}
+      />
+      <div className="min-h-screen bg-background">
+        {/* Header */}
       <header className="border-b border-border bg-card">
         <div className="container mx-auto px-4 py-6">
           <div className="flex flex-col items-center gap-4">
@@ -874,7 +881,8 @@ const PublicBooking = () => {
           )}
         </div>
       </main>
-    </div>
+      </div>
+    </>
   );
 };
 

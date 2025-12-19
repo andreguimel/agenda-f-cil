@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { SEO } from '@/components/SEO';
 
 type AuthMode = 'login' | 'signup' | 'forgot' | 'reset';
 
@@ -207,8 +208,14 @@ const AuthPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background flex">
-      {/* Left Side - Form */}
+    <>
+      <SEO 
+        title={mode === 'login' ? 'Entrar' : mode === 'signup' ? 'Criar Conta' : 'Recuperar Senha'}
+        description="Acesse sua conta no Agendaberta para gerenciar agendamentos da sua clínica."
+        canonical="/auth"
+        noIndex
+      />
+      <div className="min-h-screen bg-background flex">
       <div className="flex-1 flex items-center justify-center p-6">
         <div className="w-full max-w-md">
           <Link 
@@ -409,7 +416,8 @@ const AuthPage = () => {
           </p>
         </div>
       </div>
-    </div>
+      </div>
+    </>
   );
 };
 
