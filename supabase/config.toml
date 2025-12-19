@@ -1,5 +1,8 @@
 project_id = "vzjsetuhituhinhxftcg"
 
+[functions.admin-delete-user]
+verify_jwt = false
+
 [functions.google-calendar-auth]
 verify_jwt = false
 
