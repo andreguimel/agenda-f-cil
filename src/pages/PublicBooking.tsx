@@ -28,6 +28,11 @@ interface BookingFormData {
   phone: string;
 }
 
+interface FormErrors {
+  email?: string;
+  phone?: string;
+}
+
 type BookingStep = 'professional' | 'datetime' | 'form' | 'confirmation';
 
 const SHIFT_LABELS: Record<string, string> = {
@@ -54,9 +59,50 @@ const PublicBooking = () => {
   const [shiftAvailability, setShiftAvailability] = useState<Record<string, { available: number; total: number }>>({});
   const [loadingSlots, setLoadingSlots] = useState(false);
   const [formData, setFormData] = useState<BookingFormData>({ name: '', email: '', phone: '' });
+  const [formErrors, setFormErrors] = useState<FormErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [queuePosition, setQueuePosition] = useState<number | null>(null);
   const [isHumanVerified, setIsHumanVerified] = useState(false);
+
+  // Validation functions
+  const validateEmail = (email: string): boolean => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+
+  const validatePhone = (phone: string): boolean => {
+    // Remove non-digits
+    const digits = phone.replace(/\D/g, '');
+    // Brazilian phone: 11 digits (2 DDD + 9 + 8 digits)
+    return digits.length === 11 && digits[2] === '9';
+  };
+
+  const formatPhone = (value: string): string => {
+    const digits = value.replace(/\D/g, '');
+    if (digits.length <= 2) return digits;
+    if (digits.length <= 7) return `(${digits.slice(0, 2)}) ${digits.slice(2)}`;
+    if (digits.length <= 11) return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
+    return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7, 11)}`;
+  };
+
+  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const formatted = formatPhone(e.target.value);
+    setFormData({ ...formData, phone: formatted });
+    
+    // Clear error on change
+    if (formErrors.phone) {
+      setFormErrors({ ...formErrors, phone: undefined });
+    }
+  };
+
+  const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormData({ ...formData, email: e.target.value });
+    
+    // Clear error on change
+    if (formErrors.email) {
+      setFormErrors({ ...formErrors, email: undefined });
+    }
+  };
   
   const [dateOffset, setDateOffset] = useState(0);
   const visibleDates = Array.from({ length: 7 }, (_, i) => addDays(new Date(), dateOffset + i));
@@ -137,6 +183,27 @@ const PublicBooking = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validate fields
+    const errors: FormErrors = {};
+    
+    if (!validateEmail(formData.email.trim())) {
+      errors.email = 'Digite um e-mail válido';
+    }
+    
+    if (!validatePhone(formData.phone)) {
+      errors.phone = 'Digite um telefone válido com DDD (ex: 11 9XXXX-XXXX)';
+    }
+    
+    if (Object.keys(errors).length > 0) {
+      setFormErrors(errors);
+      toast({
+        title: 'Dados inválidos',
+        description: 'Por favor, corrija os campos destacados',
+        variant: 'destructive',
+      });
+      return;
+    }
     
     if (!isHumanVerified) {
       toast({
@@ -233,6 +300,7 @@ const PublicBooking = () => {
     setSelectedShift(null);
     setQueuePosition(null);
     setFormData({ name: '', email: '', phone: '' });
+    setFormErrors({});
     setDateOffset(0);
     setSelectedDate(new Date());
     setIsHumanVerified(false);
@@ -644,24 +712,33 @@ const PublicBooking = () => {
                     type="email"
                     placeholder="seu@email.com"
                     value={formData.email}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    onChange={handleEmailChange}
+                    className={formErrors.email ? 'border-red-500 focus-visible:ring-red-500' : ''}
                     required
                   />
+                  {formErrors.email && (
+                    <p className="text-sm text-red-500 mt-1">{formErrors.email}</p>
+                  )}
                 </div>
                 
                 <div>
                   <Label htmlFor="phone" className="flex items-center gap-2 mb-2">
                     <Phone className="w-4 h-4 text-muted-foreground" />
-                    Telefone
+                    Telefone (com DDD)
                   </Label>
                   <Input
                     id="phone"
                     type="tel"
                     placeholder="(11) 99999-9999"
                     value={formData.phone}
-                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                    onChange={handlePhoneChange}
+                    maxLength={16}
+                    className={formErrors.phone ? 'border-red-500 focus-visible:ring-red-500' : ''}
                     required
                   />
+                  {formErrors.phone && (
+                    <p className="text-sm text-red-500 mt-1">{formErrors.phone}</p>
+                  )}
                 </div>
 
                 <NotARobotCheck
