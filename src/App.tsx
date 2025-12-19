@@ -20,6 +20,7 @@ import DashboardLayout from "./components/DashboardLayout";
 import SubscriptionPage from "./pages/SubscriptionPage";
 import CancelSubscriptionPage from "./pages/CancelSubscriptionPage";
 import AdminDashboard from "./pages/AdminDashboard";
+import CancelAppointment from "./pages/CancelAppointment";
 import { SubscriptionGuard } from "./components/SubscriptionGuard";
 
 const queryClient = new QueryClient();
@@ -36,6 +37,7 @@ const App = () => (
             <Route path="/auth" element={<AuthPage />} />
             <Route path="/agendar/:clinicSlug" element={<PublicBooking />} />
             <Route path="/fila/:clinicSlug" element={<QueueTracking />} />
+            <Route path="/cancelar-agendamento" element={<CancelAppointment />} />
             
             {/* Subscription pages */}
             <Route path="/assinatura" element={<SubscriptionPage />} />
