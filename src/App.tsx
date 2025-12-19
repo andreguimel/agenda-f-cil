@@ -16,6 +16,7 @@ import DailyQueueManagement from "./pages/DailyQueueManagement";
 import ClinicSettings from "./pages/ClinicSettings";
 import AuthPage from "./pages/AuthPage";
 import NotFound from "./pages/NotFound";
+import TutorialPage from "./pages/TutorialPage";
 import DashboardLayout from "./components/DashboardLayout";
 import SubscriptionPage from "./pages/SubscriptionPage";
 import CancelSubscriptionPage from "./pages/CancelSubscriptionPage";
@@ -59,6 +60,7 @@ const App = () => (
               <Route path="fila" element={<DailyQueueManagement />} />
               <Route path="horarios" element={<BlockedTimesManagement />} />
               <Route path="configuracoes" element={<ClinicSettings />} />
+              <Route path="tutorial" element={<TutorialPage />} />
             </Route>
             
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

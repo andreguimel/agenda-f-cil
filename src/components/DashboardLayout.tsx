@@ -18,6 +18,7 @@ import {
   CalendarDays,
   ListOrdered,
   Crown,
+  BookOpen,
   Shield
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -244,6 +245,9 @@ const DashboardLayout = () => {
               </Link>
               <Link to="/painel/configuracoes" onClick={() => setSidebarOpen(false)}>
                 <SidebarItem icon={<Settings className="w-5 h-5" />} label="Dados da Clínica" active={isActive('/painel/configuracoes')} />
+              </Link>
+              <Link to="/painel/tutorial" onClick={() => setSidebarOpen(false)}>
+                <SidebarItem icon={<BookOpen className="w-5 h-5" />} label="Tutorial" active={isActive('/painel/tutorial')} />
               </Link>
             </div>
             
