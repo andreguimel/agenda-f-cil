@@ -1,6 +1,12 @@
-import { Calendar, Clock, Users, CheckCircle, ArrowRight, Zap, Shield, Gift, Star, Quote } from 'lucide-react';
+import { Calendar, Clock, Users, CheckCircle, ArrowRight, Zap, Shield, Gift, Star, Quote, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 
 const LandingPage = () => {
   return (
@@ -229,8 +235,69 @@ const LandingPage = () => {
           </div>
         </div>
 
+        {/* FAQ Section */}
+        <div className="mt-24 animate-slide-up" style={{ animationDelay: '0.6s' }}>
+          <div className="text-center mb-12">
+            <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
+              Perguntas Frequentes
+            </h2>
+            <p className="text-muted-foreground max-w-xl mx-auto">
+              Tire suas dúvidas sobre o Agendaberta.
+            </p>
+          </div>
+          
+          <div className="max-w-3xl mx-auto">
+            <Accordion type="single" collapsible className="space-y-4">
+              <AccordionItem value="item-1" className="bg-card/60 backdrop-blur-sm rounded-2xl border border-border/50 px-6 data-[state=open]:border-primary/30">
+                <AccordionTrigger className="text-left font-semibold text-foreground hover:no-underline py-5">
+                  Como funciona o período de teste grátis?
+                </AccordionTrigger>
+                <AccordionContent className="text-muted-foreground pb-5">
+                  Você tem 7 dias para testar todas as funcionalidades do Agendaberta sem compromisso. Não pedimos cartão de crédito. Após o período de teste, você pode escolher um plano que se encaixe nas suas necessidades.
+                </AccordionContent>
+              </AccordionItem>
+              
+              <AccordionItem value="item-2" className="bg-card/60 backdrop-blur-sm rounded-2xl border border-border/50 px-6 data-[state=open]:border-primary/30">
+                <AccordionTrigger className="text-left font-semibold text-foreground hover:no-underline py-5">
+                  Posso cadastrar mais de um profissional?
+                </AccordionTrigger>
+                <AccordionContent className="text-muted-foreground pb-5">
+                  Sim! O Agendaberta permite cadastrar múltiplos profissionais na mesma clínica. Cada um terá sua própria agenda, horários e especialidade configurados individualmente.
+                </AccordionContent>
+              </AccordionItem>
+              
+              <AccordionItem value="item-3" className="bg-card/60 backdrop-blur-sm rounded-2xl border border-border/50 px-6 data-[state=open]:border-primary/30">
+                <AccordionTrigger className="text-left font-semibold text-foreground hover:no-underline py-5">
+                  Como meus pacientes agendam consultas?
+                </AccordionTrigger>
+                <AccordionContent className="text-muted-foreground pb-5">
+                  Você recebe um link público exclusivo da sua clínica. Basta compartilhar esse link com seus pacientes (via WhatsApp, redes sociais, site) e eles podem agendar 24 horas por dia, escolhendo o profissional, data e horário disponível.
+                </AccordionContent>
+              </AccordionItem>
+              
+              <AccordionItem value="item-4" className="bg-card/60 backdrop-blur-sm rounded-2xl border border-border/50 px-6 data-[state=open]:border-primary/30">
+                <AccordionTrigger className="text-left font-semibold text-foreground hover:no-underline py-5">
+                  Posso sincronizar com meu Google Calendar?
+                </AccordionTrigger>
+                <AccordionContent className="text-muted-foreground pb-5">
+                  Sim! O Agendaberta integra diretamente com o Google Calendar. Todos os agendamentos aparecem automaticamente no seu calendário pessoal, evitando conflitos de horário.
+                </AccordionContent>
+              </AccordionItem>
+              
+              <AccordionItem value="item-5" className="bg-card/60 backdrop-blur-sm rounded-2xl border border-border/50 px-6 data-[state=open]:border-primary/30">
+                <AccordionTrigger className="text-left font-semibold text-foreground hover:no-underline py-5">
+                  Posso cancelar a assinatura a qualquer momento?
+                </AccordionTrigger>
+                <AccordionContent className="text-muted-foreground pb-5">
+                  Absolutamente! Não há fidelidade ou multa. Você pode cancelar sua assinatura quando quiser diretamente pelo painel, sem burocracia.
+                </AccordionContent>
+              </AccordionItem>
+            </Accordion>
+          </div>
+        </div>
+
         {/* CTA Section */}
-        <div className="mt-24 text-center animate-slide-up" style={{ animationDelay: '0.6s' }}>
+        <div className="mt-24 text-center animate-slide-up" style={{ animationDelay: '0.7s' }}>
           <div className="bg-gradient-to-br from-primary/10 via-primary/5 to-accent/10 rounded-3xl p-10 md:p-16 border border-primary/20">
             <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
               Pronto para simplificar sua agenda?
