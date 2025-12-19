@@ -25,6 +25,7 @@ export interface Professional {
   max_advance_days: number | null;
   scheduling_mode: string; // 'time_slots' | 'arrival_order'
   show_queue_position: boolean;
+  shift_display_order: string; // 'morning_first' | 'afternoon_first' | 'evening_first'
   works_saturday?: boolean;
   saturday_start_time?: string;
   saturday_end_time?: string;

@@ -582,7 +582,13 @@ const PublicBooking = () => {
                       </p>
                     ) : (
                       [...shifts].sort((a, b) => {
-                        const order: Record<string, number> = { morning: 1, afternoon: 2, evening: 3 };
+                        const displayOrder = (selectedProfessional as any)?.shift_display_order || 'morning_first';
+                        const orderMap: Record<string, Record<string, number>> = {
+                          morning_first: { morning: 1, afternoon: 2, evening: 3 },
+                          afternoon_first: { afternoon: 1, morning: 2, evening: 3 },
+                          evening_first: { evening: 1, morning: 2, afternoon: 3 },
+                        };
+                        const order = orderMap[displayOrder] || orderMap.morning_first;
                         return (order[a.shift_name] || 99) - (order[b.shift_name] || 99);
                       }).map((shift) => {
                         const availability = shiftAvailability[shift.shift_name];
