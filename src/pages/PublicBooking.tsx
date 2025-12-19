@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Link, useParams } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
+import { formatPhone, validatePhone, validateEmail } from '@/lib/masks';
 import { 
   fetchClinicBySlug, 
   fetchProfessionalsByClinic, 
@@ -65,26 +66,9 @@ const PublicBooking = () => {
   const [queuePosition, setQueuePosition] = useState<number | null>(null);
   const [isHumanVerified, setIsHumanVerified] = useState(false);
 
-  // Validation functions
-  const validateEmail = (email: string): boolean => {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(email);
-  };
+  // Validation is now imported from @/lib/masks
 
-  const validatePhone = (phone: string): boolean => {
-    // Remove non-digits
-    const digits = phone.replace(/\D/g, '');
-    // Brazilian phone: 11 digits (2 DDD + 9 + 8 digits)
-    return digits.length === 11 && digits[2] === '9';
-  };
-
-  const formatPhone = (value: string): string => {
-    const digits = value.replace(/\D/g, '');
-    if (digits.length <= 2) return digits;
-    if (digits.length <= 7) return `(${digits.slice(0, 2)}) ${digits.slice(2)}`;
-    if (digits.length <= 11) return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
-    return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7, 11)}`;
-  };
+  // Phone formatting is now imported from @/lib/masks
 
   const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const formatted = formatPhone(e.target.value);
@@ -97,7 +81,7 @@ const PublicBooking = () => {
   };
 
   const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData({ ...formData, email: e.target.value });
+    setFormData({ ...formData, email: e.target.value.toLowerCase() });
     
     // Clear error on change
     if (formErrors.email) {

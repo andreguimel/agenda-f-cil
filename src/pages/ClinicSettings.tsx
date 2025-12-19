@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { Clinic } from '@/services/schedulingService';
+import { formatPhone, formatEmail } from '@/lib/masks';
 
 interface ClinicWithHours extends Clinic {
   opening_time?: string | null;
@@ -43,7 +44,13 @@ const ClinicSettings = () => {
   }, [clinic]);
 
   const handleChange = (field: keyof typeof formData, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    if (field === 'phone') {
+      setFormData(prev => ({ ...prev, [field]: formatPhone(value) }));
+    } else if (field === 'email') {
+      setFormData(prev => ({ ...prev, [field]: value.toLowerCase() }));
+    } else {
+      setFormData(prev => ({ ...prev, [field]: value }));
+    }
   };
 
   const validateForm = () => {
