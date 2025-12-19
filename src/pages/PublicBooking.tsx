@@ -16,6 +16,7 @@ import {
   createAppointmentWithQueue,
   fetchShiftsForDate,
   getAvailableSlotsForShift,
+  isProfessionalWorkingOnDate,
   Professional,
   ProfessionalShift,
   TimeSlot,
@@ -526,24 +527,35 @@ const PublicBooking = () => {
                 </p>
                 
                 <div className="grid grid-cols-7 gap-2">
-                  {visibleDates.map((date) => (
-                    <button
-                      key={date.toISOString()}
-                      onClick={() => setSelectedDate(date)}
-                      className={`p-2 rounded-lg text-center transition-all ${
-                        isSameDay(date, selectedDate)
-                          ? 'bg-primary text-primary-foreground shadow-glow'
-                          : 'bg-secondary hover:bg-primary/10 text-secondary-foreground'
-                      }`}
-                    >
-                      <span className="block text-xs uppercase">
-                        {format(date, 'EEE', { locale: ptBR })}
-                      </span>
-                      <span className="block text-lg font-semibold">
-                        {format(date, 'd')}
-                      </span>
-                    </button>
-                  ))}
+                  {visibleDates.map((date) => {
+                    const isWorkingDay = selectedProfessional ? isProfessionalWorkingOnDate(selectedProfessional, date) : true;
+                    const isSelected = isSameDay(date, selectedDate);
+                    
+                    return (
+                      <button
+                        key={date.toISOString()}
+                        onClick={() => isWorkingDay && setSelectedDate(date)}
+                        disabled={!isWorkingDay}
+                        className={`p-2 rounded-lg text-center transition-all ${
+                          isSelected
+                            ? 'bg-primary text-primary-foreground shadow-glow'
+                            : isWorkingDay 
+                              ? 'bg-secondary hover:bg-primary/10 text-secondary-foreground'
+                              : 'bg-muted/50 text-muted-foreground cursor-not-allowed opacity-50'
+                        }`}
+                      >
+                        <span className="block text-xs uppercase">
+                          {format(date, 'EEE', { locale: ptBR })}
+                        </span>
+                        <span className="block text-lg font-semibold">
+                          {format(date, 'd')}
+                        </span>
+                        {!isWorkingDay && (
+                          <span className="block text-[10px] text-destructive">Não atende</span>
+                        )}
+                      </button>
+                    );
+                  })}
                 </div>
                 
                 <p className="text-sm text-muted-foreground mt-2 text-center">
@@ -623,24 +635,38 @@ const PublicBooking = () => {
                   </div>
                 ) : (
                   // Time slots for regular mode
-                  <div className="grid grid-cols-4 sm:grid-cols-5 gap-2">
-                    {timeSlots.map((slot) => (
-                      <button
-                        key={slot.id}
-                        onClick={() => handleSelectSlot(slot)}
-                        disabled={!slot.available}
-                        className={`py-3 px-2 rounded-lg text-sm font-medium transition-all ${
-                          !slot.available
-                            ? 'bg-muted text-muted-foreground cursor-not-allowed'
-                            : selectedSlot?.id === slot.id
-                            ? 'bg-primary text-primary-foreground shadow-glow'
-                            : 'bg-secondary hover:bg-primary/10 text-secondary-foreground'
-                        }`}
-                      >
-                        {slot.time}
-                      </button>
-                    ))}
-                  </div>
+                  timeSlots.length === 0 ? (
+                    <div className="text-center py-8">
+                      <Clock className="w-12 h-12 text-muted-foreground mx-auto mb-4 opacity-50" />
+                      <p className="text-muted-foreground">
+                        {selectedProfessional && !isProfessionalWorkingOnDate(selectedProfessional, selectedDate) 
+                          ? 'O profissional não atende nesta data'
+                          : 'Nenhum horário disponível para esta data'}
+                      </p>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        Selecione outra data
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-4 sm:grid-cols-5 gap-2">
+                      {timeSlots.map((slot) => (
+                        <button
+                          key={slot.id}
+                          onClick={() => handleSelectSlot(slot)}
+                          disabled={!slot.available}
+                          className={`py-3 px-2 rounded-lg text-sm font-medium transition-all ${
+                            !slot.available
+                              ? 'bg-muted text-muted-foreground cursor-not-allowed'
+                              : selectedSlot?.id === slot.id
+                              ? 'bg-primary text-primary-foreground shadow-glow'
+                              : 'bg-secondary hover:bg-primary/10 text-secondary-foreground'
+                          }`}
+                        >
+                          {slot.time}
+                        </button>
+                      ))}
+                    </div>
+                  )
                 )}
               </div>
             </div>

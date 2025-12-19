@@ -25,6 +25,12 @@ export interface Professional {
   max_advance_days: number | null;
   scheduling_mode: string; // 'time_slots' | 'arrival_order'
   show_queue_position: boolean;
+  works_saturday?: boolean;
+  saturday_start_time?: string;
+  saturday_end_time?: string;
+  works_sunday?: boolean;
+  sunday_start_time?: string;
+  sunday_end_time?: string;
 }
 
 export interface ProfessionalShift {
@@ -83,6 +89,24 @@ export interface TimeSlot {
   time: string;
   available: boolean;
 }
+
+// Check if professional works on a specific date
+export const isProfessionalWorkingOnDate = (professional: Professional, date: Date): boolean => {
+  const dayOfWeek = date.getDay(); // 0 = Sunday, 6 = Saturday
+  
+  // Sunday
+  if (dayOfWeek === 0) {
+    return professional.works_sunday === true;
+  }
+  
+  // Saturday
+  if (dayOfWeek === 6) {
+    return professional.works_saturday === true;
+  }
+  
+  // Weekdays - always works
+  return true;
+};
 
 // Fetch clinic by slug
 export const fetchClinicBySlug = async (slug: string): Promise<Clinic | null> => {
@@ -502,18 +526,62 @@ export const generateTimeSlots = async (
   clinicId?: string
 ): Promise<TimeSlot[]> => {
   const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+  const dayOfWeek = date.getDay(); // 0 = Sunday, 6 = Saturday
   
-  console.log(`[generateTimeSlots] Generating slots for date: ${dateStr}, professional: ${professionalId}`);
+  console.log(`[generateTimeSlots] Generating slots for date: ${dateStr}, professional: ${professionalId}, dayOfWeek: ${dayOfWeek}`);
   
-  // Fetch professional data to get duration
+  // Fetch professional data to get duration and work hours
   const { data: professional } = await supabase
     .from('professionals')
-    .select('duration')
+    .select('duration, work_start_time, work_end_time, has_lunch_break, lunch_start_time, lunch_end_time, works_saturday, saturday_start_time, saturday_end_time, works_sunday, sunday_start_time, sunday_end_time')
     .eq('id', professionalId)
     .single();
 
   const duration = professional?.duration || 30;
-  console.log(`[generateTimeSlots] Professional duration: ${duration} minutes`);
+  
+  // Determine work hours based on day of week
+  let workStartTime = professional?.work_start_time || '08:00';
+  let workEndTime = professional?.work_end_time || '18:00';
+  
+  // Check if it's Saturday
+  if (dayOfWeek === 6) {
+    if (!professional?.works_saturday) {
+      console.log(`[generateTimeSlots] Professional does not work on Saturday`);
+      return []; // Professional doesn't work on Saturday
+    }
+    workStartTime = professional?.saturday_start_time || '08:00';
+    workEndTime = professional?.saturday_end_time || '12:00';
+  }
+  
+  // Check if it's Sunday
+  if (dayOfWeek === 0) {
+    if (!professional?.works_sunday) {
+      console.log(`[generateTimeSlots] Professional does not work on Sunday`);
+      return []; // Professional doesn't work on Sunday
+    }
+    workStartTime = professional?.sunday_start_time || '08:00';
+    workEndTime = professional?.sunday_end_time || '12:00';
+  }
+  
+  // Parse work hours
+  const [startH, startM] = workStartTime.split(':').map(Number);
+  const [endH, endM] = workEndTime.split(':').map(Number);
+  const startMinutes = startH * 60 + (startM || 0);
+  const endMinutes = endH * 60 + (endM || 0);
+  
+  // Parse lunch break if applicable (only for weekdays)
+  let lunchStartMinutes = 0;
+  let lunchEndMinutes = 0;
+  const hasLunchBreak = professional?.has_lunch_break && dayOfWeek !== 0 && dayOfWeek !== 6;
+  
+  if (hasLunchBreak) {
+    const [lunchStartH, lunchStartMin] = (professional?.lunch_start_time || '12:00').split(':').map(Number);
+    const [lunchEndH, lunchEndMin] = (professional?.lunch_end_time || '13:00').split(':').map(Number);
+    lunchStartMinutes = lunchStartH * 60 + (lunchStartMin || 0);
+    lunchEndMinutes = lunchEndH * 60 + (lunchEndMin || 0);
+  }
+
+  console.log(`[generateTimeSlots] Work hours: ${workStartTime} - ${workEndTime}, duration: ${duration} minutes`);
   
   // Fetch existing appointments, blocked times, and Google Calendar busy times
   const [appointments, blockedTimes, googleBusyTimes] = await Promise.all([
@@ -529,20 +597,18 @@ export const generateTimeSlots = async (
   // Create a map of booked time ranges (considering appointment duration)
   const bookedRanges: { start: number; end: number }[] = appointments.map(apt => {
     const [h, m] = apt.time.split(':').map(Number);
-    const startMinutes = h * 60 + m;
-    return { start: startMinutes, end: startMinutes + duration };
+    const aptStartMinutes = h * 60 + m;
+    return { start: aptStartMinutes, end: aptStartMinutes + duration };
   });
   
   console.log(`[generateTimeSlots] Booked ranges (minutes):`, bookedRanges);
   
   const slots: TimeSlot[] = [];
-  const startHour = 8;
-  const endHour = 18;
   const now = new Date();
   const isToday = date.toDateString() === now.toDateString();
 
-  // Generate slots based on professional's duration
-  for (let minutes = startHour * 60; minutes + duration <= endHour * 60; minutes += duration) {
+  // Generate slots based on professional's duration and work hours
+  for (let minutes = startMinutes; minutes + duration <= endMinutes; minutes += duration) {
     const hour = Math.floor(minutes / 60);
     const minute = minutes % 60;
     const time = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
@@ -550,6 +616,9 @@ export const generateTimeSlots = async (
     
     // Check if time is in the past (for today)
     const isPast = isToday && (hour < now.getHours() || (hour === now.getHours() && minute <= now.getMinutes()));
+    
+    // Check if slot overlaps with lunch break
+    const isLunchBreak = hasLunchBreak && (minutes < lunchEndMinutes && slotEnd > lunchStartMinutes);
     
     // Check if this slot overlaps with any booked appointment
     const isBooked = bookedRanges.some(range => 
@@ -574,10 +643,10 @@ export const generateTimeSlots = async (
       return (minutes < busyEnd && slotEnd > busyStart);
     });
 
-    const available = !isPast && !isBooked && !isBlocked && !isBusyInGoogle;
+    const available = !isPast && !isBooked && !isBlocked && !isBusyInGoogle && !isLunchBreak;
     
     if (!available) {
-      console.log(`[generateTimeSlots] Slot ${time} unavailable - isPast: ${isPast}, isBooked: ${isBooked}, isBlocked: ${isBlocked}, isBusyInGoogle: ${isBusyInGoogle}`);
+      console.log(`[generateTimeSlots] Slot ${time} unavailable - isPast: ${isPast}, isBooked: ${isBooked}, isBlocked: ${isBlocked}, isBusyInGoogle: ${isBusyInGoogle}, isLunchBreak: ${isLunchBreak}`);
     }
 
     slots.push({
