@@ -185,12 +185,69 @@ const ShiftsManagement = () => {
     resetForm();
   };
 
+  // Helper function to check if two time ranges overlap
+  const hasTimeConflict = (start1: string, end1: string, start2: string, end2: string): boolean => {
+    return start1 < end2 && start2 < end1;
+  };
+
+  // Check for conflicts with existing shifts
+  const getConflictingDays = (daysToCheck: number[], excludeShiftId?: string): { day: number; conflictingShift: ProfessionalShift }[] => {
+    const conflicts: { day: number; conflictingShift: ProfessionalShift }[] = [];
+    
+    for (const day of daysToCheck) {
+      const existingShiftsForDay = shifts.filter(s => 
+        s.day_of_week === day && s.id !== excludeShiftId
+      );
+      
+      for (const existingShift of existingShiftsForDay) {
+        const existingStart = existingShift.start_time.slice(0, 5);
+        const existingEnd = existingShift.end_time.slice(0, 5);
+        
+        if (hasTimeConflict(formData.start_time, formData.end_time, existingStart, existingEnd)) {
+          conflicts.push({ day, conflictingShift: existingShift });
+          break; // Only need one conflict per day
+        }
+      }
+    }
+    
+    return conflicts;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedProfessional) return;
     if (formData.days_of_week.length === 0) {
       toast({
         title: 'Selecione pelo menos um dia',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    // Validate time range
+    if (formData.start_time >= formData.end_time) {
+      toast({
+        title: 'Horário inválido',
+        description: 'O horário de início deve ser anterior ao horário de fim',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    // Check for conflicts
+    const conflicts = getConflictingDays(
+      formData.days_of_week, 
+      editingShift?.id
+    );
+
+    if (conflicts.length > 0) {
+      const dayNames = conflicts.map(c => 
+        DAYS_OF_WEEK.find(d => d.value === c.day)?.label
+      ).join(', ');
+      
+      toast({
+        title: 'Conflito de horários',
+        description: `Já existe um turno neste horário em: ${dayNames}`,
         variant: 'destructive',
       });
       return;
