@@ -383,22 +383,15 @@ const DashboardLayout = () => {
           </div>
 
           {/* User & Footer */}
-          <div className="p-4 border-t border-border space-y-2">
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <User className="w-4 h-4" />
-              <span className="truncate">{user.email}</span>
-            </div>
-            <div className="flex gap-2">
-              <Link to="/" className="flex-1">
-                <Button variant="ghost" size="sm" className="w-full justify-start">
-                  <Home className="w-4 h-4 mr-2" />
-                  Início
-                </Button>
-              </Link>
-              <Button variant="ghost" size="sm" onClick={handleSignOut}>
-                <LogOut className="w-4 h-4" />
-              </Button>
-            </div>
+          <div className="p-4 border-t border-border">
+            <Button 
+              variant="ghost" 
+              className="w-full justify-between text-muted-foreground hover:text-foreground"
+              onClick={handleSignOut}
+            >
+              <span className="truncate text-sm">{user.email}</span>
+              <LogOut className="w-4 h-4 ml-2 flex-shrink-0" />
+            </Button>
           </div>
         </div>
       </aside>
