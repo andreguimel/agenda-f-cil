@@ -14,7 +14,9 @@ import {
   Clock,
   XCircle,
   UserCog,
-  Crown
+  Crown,
+  Trash2,
+  Pencil
 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -28,9 +30,30 @@ import {
   TableRow 
 } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAdmin } from '@/hooks/useAdmin';
 import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 interface Subscription {
   id: string;
@@ -109,6 +132,11 @@ const AdminDashboard = () => {
   const [metrics, setMetrics] = useState<Metrics | null>(null);
   const [loading, setLoading] = useState(true);
   const [updatingRole, setUpdatingRole] = useState<string | null>(null);
+  const [deletingUser, setDeletingUser] = useState<string | null>(null);
+  const [userToDelete, setUserToDelete] = useState<UserProfile | null>(null);
+  const [userToEdit, setUserToEdit] = useState<UserProfile | null>(null);
+  const [editForm, setEditForm] = useState({ full_name: '', email: '' });
+  const [savingEdit, setSavingEdit] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -239,6 +267,81 @@ const AdminDashboard = () => {
       console.error('Error updating role:', error);
     } finally {
       setUpdatingRole(null);
+    }
+  };
+
+  const handleDeleteUser = async () => {
+    if (!userToDelete) return;
+    
+    setDeletingUser(userToDelete.user_id);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-delete-user`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${session?.access_token}`,
+          },
+          body: JSON.stringify({ userId: userToDelete.user_id }),
+        }
+      );
+
+      const result = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(result.error || 'Erro ao deletar usuário');
+      }
+
+      setUsers(prev => prev.filter(u => u.user_id !== userToDelete.user_id));
+      toast.success('Usuário deletado com sucesso');
+    } catch (error) {
+      console.error('Error deleting user:', error);
+      toast.error(error instanceof Error ? error.message : 'Erro ao deletar usuário');
+    } finally {
+      setDeletingUser(null);
+      setUserToDelete(null);
+    }
+  };
+
+  const openEditDialog = (profile: UserProfile) => {
+    setUserToEdit(profile);
+    setEditForm({
+      full_name: profile.full_name || '',
+      email: profile.email || '',
+    });
+  };
+
+  const handleSaveEdit = async () => {
+    if (!userToEdit) return;
+    
+    setSavingEdit(true);
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          full_name: editForm.full_name,
+          email: editForm.email,
+        })
+        .eq('user_id', userToEdit.user_id);
+
+      if (error) throw error;
+
+      setUsers(prev => prev.map(u => 
+        u.user_id === userToEdit.user_id 
+          ? { ...u, full_name: editForm.full_name, email: editForm.email }
+          : u
+      ));
+      
+      toast.success('Usuário atualizado com sucesso');
+      setUserToEdit(null);
+    } catch (error) {
+      console.error('Error updating user:', error);
+      toast.error('Erro ao atualizar usuário');
+    } finally {
+      setSavingEdit(false);
     }
   };
 
@@ -477,20 +580,42 @@ const AdminDashboard = () => {
                                 {new Date(profile.created_at).toLocaleDateString('pt-BR')}
                               </TableCell>
                               <TableCell className="text-right">
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  disabled={isCurrentUser || updatingRole === profile.user_id}
-                                  onClick={() => toggleUserRole(profile.user_id, profile.user_role?.role)}
-                                >
-                                  {updatingRole === profile.user_id ? (
-                                    <Loader2 className="w-4 h-4 animate-spin" />
-                                  ) : isUserAdmin ? (
-                                    'Remover Admin'
-                                  ) : (
-                                    'Tornar Admin'
-                                  )}
-                                </Button>
+                                <div className="flex items-center justify-end gap-2">
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => openEditDialog(profile)}
+                                  >
+                                    <Pencil className="w-4 h-4" />
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    disabled={isCurrentUser || deletingUser === profile.user_id}
+                                    onClick={() => setUserToDelete(profile)}
+                                    className="text-destructive hover:text-destructive"
+                                  >
+                                    {deletingUser === profile.user_id ? (
+                                      <Loader2 className="w-4 h-4 animate-spin" />
+                                    ) : (
+                                      <Trash2 className="w-4 h-4" />
+                                    )}
+                                  </Button>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    disabled={isCurrentUser || updatingRole === profile.user_id}
+                                    onClick={() => toggleUserRole(profile.user_id, profile.user_role?.role)}
+                                  >
+                                    {updatingRole === profile.user_id ? (
+                                      <Loader2 className="w-4 h-4 animate-spin" />
+                                    ) : isUserAdmin ? (
+                                      'Remover Admin'
+                                    ) : (
+                                      'Tornar Admin'
+                                    )}
+                                  </Button>
+                                </div>
                               </TableCell>
                             </TableRow>
                           );
@@ -546,6 +671,69 @@ const AdminDashboard = () => {
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* Delete User Dialog */}
+      <AlertDialog open={!!userToDelete} onOpenChange={() => setUserToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir o usuário <strong>{userToDelete?.full_name || userToDelete?.email}</strong>? 
+              Esta ação não pode ser desfeita e removerá todos os dados associados.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteUser}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deletingUser ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Edit User Dialog */}
+      <Dialog open={!!userToEdit} onOpenChange={() => setUserToEdit(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Editar Usuário</DialogTitle>
+            <DialogDescription>
+              Atualize as informações do usuário
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="full_name">Nome completo</Label>
+              <Input
+                id="full_name"
+                value={editForm.full_name}
+                onChange={(e) => setEditForm(prev => ({ ...prev, full_name: e.target.value }))}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                type="email"
+                value={editForm.email}
+                onChange={(e) => setEditForm(prev => ({ ...prev, email: e.target.value }))}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setUserToEdit(null)}>
+              Cancelar
+            </Button>
+            <Button onClick={handleSaveEdit} disabled={savingEdit}>
+              {savingEdit && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
+              Salvar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
