@@ -397,9 +397,15 @@ const AppointmentCard = ({ appointment, onCancel, onMarkArrived, showDate }: App
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuItem className="flex items-center gap-2 text-xs">
-                  <Phone className="w-3 h-3" />
-                  {appointment.patient_phone}
+                <DropdownMenuItem asChild className="flex items-center gap-2 text-xs cursor-pointer">
+                  <a
+                    href={`https://wa.me/55${appointment.patient_phone.replace(/\D/g, '')}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <Phone className="w-3 h-3" />
+                    {appointment.patient_phone}
+                  </a>
                 </DropdownMenuItem>
                 <DropdownMenuItem className="flex items-center gap-2 text-xs">
                   <Mail className="w-3 h-3" />
