@@ -12,9 +12,11 @@ import {
   Filter,
   Download,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  FileSpreadsheet
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import {
   Select,
@@ -172,6 +174,51 @@ const AppointmentHistoryPage = () => {
     cancelled: filteredAppointments.filter(a => a.status === 'cancelled').length,
   };
 
+  const getStatusLabel = (status: string) => {
+    const labels: Record<string, string> = {
+      confirmed: 'Confirmado',
+      pending: 'Pendente',
+      cancelled: 'Cancelado',
+      completed: 'Concluído',
+    };
+    return labels[status] || status;
+  };
+
+  const exportToCSV = () => {
+    if (filteredAppointments.length === 0) {
+      toast.error('Nenhum dado para exportar');
+      return;
+    }
+
+    const headers = ['Data', 'Horário', 'Cliente', 'Telefone', 'Email', 'Profissional', 'Especialidade', 'Status'];
+    const rows = filteredAppointments.map(apt => [
+      format(new Date(apt.date), 'dd/MM/yyyy'),
+      apt.shift_name 
+        ? (apt.shift_name === 'morning' ? 'Manhã' : apt.shift_name === 'afternoon' ? 'Tarde' : 'Noite')
+        : apt.time.slice(0, 5),
+      apt.patient_name,
+      apt.patient_phone,
+      apt.patient_email,
+      apt.professional?.name || '-',
+      apt.professional?.specialty || '-',
+      getStatusLabel(apt.status)
+    ]);
+
+    const csvContent = [
+      headers.join(';'),
+      ...rows.map(row => row.map(cell => `"${cell}"`).join(';'))
+    ].join('\n');
+
+    const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `historico-${format(selectedMonth, 'yyyy-MM')}.csv`;
+    link.click();
+    URL.revokeObjectURL(link.href);
+    
+    toast.success('Histórico exportado com sucesso!');
+  };
+
   return (
     <div className="p-6">
       {/* Header */}
@@ -205,6 +252,11 @@ const AppointmentHistoryPage = () => {
             <ChevronRight className="w-4 h-4" />
           </Button>
         </div>
+
+        <Button variant="outline" onClick={exportToCSV} className="gap-2">
+          <FileSpreadsheet className="w-4 h-4" />
+          Exportar CSV
+        </Button>
       </div>
 
       {/* Filters */}
@@ -212,7 +264,7 @@ const AppointmentHistoryPage = () => {
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input
-            placeholder="Buscar paciente..."
+            placeholder="Buscar cliente..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="pl-10"
@@ -303,7 +355,7 @@ const AppointmentHistoryPage = () => {
               <TableRow>
                 <TableHead>Data</TableHead>
                 <TableHead>Horário</TableHead>
-                <TableHead>Paciente</TableHead>
+                <TableHead>Cliente</TableHead>
                 <TableHead>Telefone</TableHead>
                 <TableHead>Profissional</TableHead>
                 <TableHead>Status</TableHead>
